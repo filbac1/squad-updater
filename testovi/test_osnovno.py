@@ -109,6 +109,21 @@ class Formula(unittest.TestCase):
         self.assertEqual(ME.formula({'value': 9, 'age': 'x'})['age'], 1.0)
 
 
+class Verzija(unittest.TestCase):
+    def test_github_izdanje(self):
+        import io, urllib.request, app_api as A, version as V
+        rel = {'tag_name': 'v9.0.0', 'html_url': 'https://github.com/x/y/releases/v9.0.0', 'body': 'Nove stvari\nvise',
+               'assets': [{'name': 'SquadUpdater-9.0.0.zip', 'browser_download_url': 'https://github.com/x/y/a.zip'}]}
+        class R(io.BytesIO):
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+        stari, sp = urllib.request.urlopen, A.postavke
+        urllib.request.urlopen = lambda *a, **k: R(json.dumps(rel).encode()); A.postavke = lambda: {}
+        try: v = A.verzija(True)
+        finally: urllib.request.urlopen, A.postavke = stari, sp
+        self.assertEqual((v['zadnja'], v['nova'], v['url'], v['biljeske']), ('9.0.0', True, 'https://github.com/x/y/a.zip', 'Nove stvari'))
+
+
 class Paket(unittest.TestCase):
     def test_spec_sadrzi_module_i_podatke(self):
         s = open(os.path.join(HERE, 'SquadUpdater.spec'), encoding='utf-8').read()

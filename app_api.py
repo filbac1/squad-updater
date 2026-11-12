@@ -691,8 +691,19 @@ def verzija(provjeri):
     url = (postavke().get('update_url') or V.DEFAULT_UPDATE_URL or '').strip()
     if not url: out['url_nije_postavljen'] = True; return out
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'SquadUpdater/' + V.VERSION}), timeout=15) as r:
-            d = json.load(r)
+        import urllib.error
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'SquadUpdater/' + V.VERSION,
+                                                                              'Accept': 'application/vnd.github+json'}), timeout=15) as r:
+                d = json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 404 and 'api.github.com' in url:              # repozitorij jos nema izdanja
+                out['zadnja'] = V.VERSION; out['nova'] = False; return out
+            raise
+        if 'tag_name' in d:                                            # GitHub Releases
+            zip_ = next((a['browser_download_url'] for a in d.get('assets') or [] if a.get('name', '').lower().endswith('.zip')), None)
+            d = {'version': d['tag_name'].lstrip('vV'), 'url': zip_ or d.get('html_url'),
+                 'notes': (d.get('body') or '').strip().split('\n')[0][:300]}
         num = lambda v: tuple(int(x) for x in str(v).split('.') if x.isdigit())
         out['zadnja'] = d.get('version'); out['url'] = d.get('url'); out['biljeske'] = d.get('notes')
         out['nova'] = bool(d.get('version')) and num(d['version']) > num(V.VERSION)
