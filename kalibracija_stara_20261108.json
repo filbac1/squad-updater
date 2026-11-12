@@ -1,0 +1,258 @@
+{
+ "coef": [
+  1.5861126251625242,
+  5.170392744069839,
+  0.7206703351576084,
+  -0.40277238847292923,
+  0.06672371513146384,
+  0.1000996762672415,
+  0.05220720339787753,
+  -0.10048206769183028,
+  -0.4549505487811078,
+  -0.3069899875731767,
+  -0.17137651343181787,
+  -0.2683250596018924,
+  -0.9056275403956854,
+  -0.9053606493265829,
+  -3.4999133245426113,
+  0.15490057255989054
+ ],
+ "const": 55.53134092178027,
+ "n": 14980,
+ "greska": 1.744420964776924,
+ "unutar3": 0.8322429906542056,
+ "lige": [
+  [
+   "A1",
+   "Bundesliga",
+   89
+  ],
+  [
+   "ARG1",
+   "Torneo Apertura",
+   856
+  ],
+  [
+   "AUS1",
+   "A-League Men",
+   64
+  ],
+  [
+   "BE1",
+   "Jupiler Pro League",
+   520
+  ],
+  [
+   "BRA1",
+   "Campeonato Brasileiro Série A",
+   567
+  ],
+  [
+   "BRA2",
+   "Campeonato Brasileiro Série B",
+   459
+  ],
+  [
+   "BU1",
+   "efbet Liga",
+   64
+  ],
+  [
+   "C1",
+   "Super League",
+   157
+  ],
+  [
+   "CLPD",
+   "Liga de Primera",
+   410
+  ],
+  [
+   "COL1",
+   "Liga Dimayor Finalización",
+   490
+  ],
+  [
+   "CSL",
+   "Chinese Super League",
+   393
+  ],
+  [
+   "DK1",
+   "Superliga",
+   313
+  ],
+  [
+   "EGY1",
+   "Egyptian Premier League",
+   48
+  ],
+  [
+   "ES1",
+   "LaLiga",
+   516
+  ],
+  [
+   "ES2",
+   "LaLiga2",
+   559
+  ],
+  [
+   "FR1",
+   "Ligue 1",
+   461
+  ],
+  [
+   "FR2",
+   "Ligue 2",
+   443
+  ],
+  [
+   "GB1",
+   "Premier League",
+   542
+  ],
+  [
+   "GB2",
+   "Championship",
+   648
+  ],
+  [
+   "GR1",
+   "Super League 1",
+   346
+  ],
+  [
+   "IT1",
+   "Serie A",
+   577
+  ],
+  [
+   "IT2",
+   "Serie B",
+   567
+  ],
+  [
+   "JAP1",
+   "J1 League",
+   583
+  ],
+  [
+   "KR1",
+   "SuperSport HNL",
+   79
+  ],
+  [
+   "L1",
+   "Bundesliga",
+   452
+  ],
+  [
+   "MEX1",
+   "Liga MX Clausura",
+   220
+  ],
+  [
+   "MLS1",
+   "Major League Soccer",
+   783
+  ],
+  [
+   "NL1",
+   "Eredivisie",
+   481
+  ],
+  [
+   "NO1",
+   "Eliteserien",
+   91
+  ],
+  [
+   "PL1",
+   "PKO BP Ekstraklasa",
+   155
+  ],
+  [
+   "PO1",
+   "Liga Portugal",
+   492
+  ],
+  [
+   "QSL",
+   "Qatar Stars League",
+   172
+  ],
+  [
+   "RO1",
+   "SuperLiga",
+   72
+  ],
+  [
+   "RU1",
+   "Premier Liga",
+   387
+  ],
+  [
+   "SA1",
+   "Saudi Pro League",
+   425
+  ],
+  [
+   "SC1",
+   "Scottish Premiership",
+   319
+  ],
+  [
+   "SE1",
+   "Allsvenskan",
+   74
+  ],
+  [
+   "SER1",
+   "Super liga Srbije",
+   82
+  ],
+  [
+   "SLO1",
+   "Niké Liga",
+   19
+  ],
+  [
+   "TDeA",
+   "Liga 1 Apertura",
+   101
+  ],
+  [
+   "TR1",
+   "Süper Lig",
+   481
+  ],
+  [
+   "TS1",
+   "Chance Liga",
+   94
+  ],
+  [
+   "UKR1",
+   "Premier Liga",
+   78
+  ],
+  [
+   "UNG1",
+   "Nemzeti Bajnokság",
+   50
+  ],
+  [
+   "URU1",
+   "Liga AUF Apertura",
+   106
+  ],
+  [
+   "ZYP1",
+   "Cyprus League",
+   95
+  ]
+ ],
+ "datum": "2026-11-08",
+ "baza": "aktivna baza igre"
+}

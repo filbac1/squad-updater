@@ -1,0 +1,18 @@
+# podaci i rezultati (veliki, mijenjaju se pri svakom radu)
+cache/
+baze/
+izvjestaji/
+izlaz/
+izlaz_povijest/
+izlaz.zip
+backup_original_*/
+logs/
+*.log
+build/
+dist/
+__pycache__/
+*.novo
+# korisnicke postavke / rucni rad (lokalno)
+postavke.json
+projekt.json
+rucne.json

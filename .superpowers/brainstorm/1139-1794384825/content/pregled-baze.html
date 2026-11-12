@@ -1,0 +1,38 @@
+<h2>Pregled baze s filterima</h2>
+<p class="subtitle">Pretpostavljam radni prostor (B). Ovo je „Browse &amp; filter“: lijevo filteri, desno igrači po stranicama (poslužitelj filtrira, pa radi i za 200.000 igrača). Klik na igrača otvara detalje. Filter se može spremiti kao opseg za novi posao.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Preview: Browse &amp; filter — ModStudio DB (203,118 players)</div>
+  <div class="mockup-body" style="display:flex;gap:10px">
+    <div class="mock-sidebar" style="min-width:210px;line-height:1.9">
+      <b>Filters</b><br>
+      <input class="mock-input" placeholder="Name, club, ID…" style="width:100%"><br>
+      League <span class="mock-input" style="padding:1px 6px">Albania Superliga ✕</span><br>
+      Club ▾ · Nationality ▾ · National team ▾<br>
+      Position ☐GK ☑CB ☐LB ☐RB ☐DMF ☑CMF …<br>
+      Age 17 ─●────●─ 40<br>
+      Overall 40 ─●────●─ 99<br>
+      <b>Status</b><br>
+      ☐ No club &nbsp;☐ On loan<br>
+      ☐ Contract ends 2027<br>
+      ☐ No real face<br>
+      ☐ Not matched on Transfermarkt<br>
+      ☐ Suspicious match<br>
+      <b>Last job</b><br>
+      ☐ Changed only &nbsp; Δ overall ≥ ±5<br>
+      <button class="mock-button" style="margin-top:6px">Use as scope for new job</button>
+    </div>
+    <div class="mock-content" style="flex:1;padding:8px">
+      <div style="display:flex;justify-content:space-between"><b>412 players</b><span>Export to Excel · CSV</span></div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:6px">
+        <tr style="text-align:left;opacity:.7"><th>Name</th><th>Club</th><th>Pos</th><th>Age</th><th>Old</th><th>New</th><th>TM value</th><th>Contract</th><th>Face</th></tr>
+        <tr><td>Sokol Cikalleshi</td><td>KF Tirana</td><td>CF</td><td>36</td><td>71</td><td><b>66</b></td><td>0.3 M</td><td>2027</td><td>✔</td></tr>
+        <tr><td>Kristal Abazaj</td><td>FK Partizani</td><td>LWF</td><td>30</td><td>69</td><td><b>68</b></td><td>0.6 M</td><td>2026</td><td>—</td></tr>
+        <tr><td>Ernest Muçi</td><td>Beşiktaş (loan → Egnatia)</td><td>SS</td><td>25</td><td>74</td><td><b>76</b></td><td>8 M</td><td>2028</td><td>✔</td></tr>
+        <tr style="background:rgba(200,60,40,.08)"><td>A. Hoxha ⚠</td><td>KF Vllaznia</td><td>CMF</td><td>24</td><td>65</td><td><b>73</b></td><td>0.2 M</td><td>2026</td><td>—</td></tr>
+        <tr><td colspan="9" style="opacity:.6">… page 1 of 21</td></tr>
+      </table>
+      <div class="placeholder" style="margin-top:10px">Click a player → detail: attributes before/after, Transfermarkt data, contract, why it was matched, “undo for this player” / “lock this player”</div>
+    </div>
+  </div>
+</div>

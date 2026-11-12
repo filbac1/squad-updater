@@ -1,0 +1,1586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squad Updater</title>
+<link rel="icon" href="/ikona.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF1F5; --panel:#FFFFFF; --ink:#10233A; --ink2:#52647A; --line:#D3DCE5; --soft:#F4F7FA;
+  --band:#10233A; --band2:#183552; --bandink:#F3F6FA; --bandsub:#9DB2C9; --rail:#2C4D70;
+  --sun:#F5B700; --sunink:#1B1500; --pitch:#1E8E5A; --card:#D7263D; --warn:#B26B00; --focus:#2F7DD1;
+  --r90:#D7263D; --r80:#EE6A2C; --r75:#C99A00; --r70:#3FA34D; --r0:#3C7FB0;
+  --logbg:#0C1B2B; --logink:#CFE0F2;
+  --cond:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow','Segoe UI',sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --paper:#0E1B29; --panel:#152536; --ink:#E6EDF5; --ink2:#9DB0C4; --line:#283C52; --soft:#1A2D41;
+    --band:#0A1622; --band2:#13283D; --rail:#2A4866; --focus:#6FB0F5; --logbg:#08131E; --warn:#E39A2D; }
+}
+:root[data-theme="dark"]{ --paper:#0E1B29; --panel:#152536; --ink:#E6EDF5; --ink2:#9DB0C4; --line:#283C52; --soft:#1A2D41;
+  --band:#0A1622; --band2:#13283D; --rail:#2A4866; --focus:#6FB0F5; --logbg:#08131E; --warn:#E39A2D; }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15.5px/1.5 var(--body);min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+h2{font:700 30px/1.05 var(--cond);margin:0 0 4px;letter-spacing:.1px}
+h3{font:600 20px/1.15 var(--cond);margin:0 0 6px}
+p{margin:0 0 8px}
+.sub{color:var(--ink2)}
+.small{font-size:13.5px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ================= band (header + route) ================= */
+.band{background:linear-gradient(180deg,var(--band) 0%,var(--band2) 100%);color:var(--bandink);position:sticky;top:0;z-index:20;box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.bar{display:flex;align-items:center;gap:18px;padding:10px 24px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:800 24px/1 var(--cond);letter-spacing:.3px;white-space:nowrap}
+.brand img{width:30px;height:30px;border-radius:7px}
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap}
+nav.tabs button{all:unset;cursor:pointer;font:600 19px/1 var(--cond);color:var(--bandsub);padding:10px 12px 12px;position:relative;border-radius:6px 6px 0 0}
+nav.tabs button:hover{color:var(--bandink)}
+nav.tabs button[aria-current="page"]{color:var(--bandink)}
+nav.tabs button[aria-current="page"]::after{content:"";position:absolute;left:12px;right:12px;bottom:4px;height:3px;border-radius:2px;background:var(--sun);view-transition-name:tabmark}
+nav.tabs button:focus-visible{outline:3px solid var(--sun);outline-offset:-3px}
+nav.tabs .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--sun);margin-left:5px;vertical-align:3px}
+.bar .grow{flex:1}
+.bar .ver{font-size:13px;color:var(--bandsub)}
+.themebtn{all:unset;cursor:pointer;color:var(--bandsub);font-size:18px;padding:4px 6px;border-radius:5px}
+.themebtn:hover{color:var(--bandink)}
+
+/* route: the four stations a database goes through */
+.route{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:14px 24px 18px;position:relative}
+.route::before{content:"";position:absolute;left:calc(24px + 11px);right:calc(24px + 12.5%);top:26px;height:3px;background:var(--rail);border-radius:2px}
+.route .ball{position:absolute;top:19px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px var(--sun),0 2px 8px rgba(0,0,0,.4);
+  left:calc(24px + 25% + 3px);opacity:0;pointer-events:none}
+.route.running .ball{opacity:1;animation:roll 2.4s var(--ease) infinite}
+@keyframes roll{0%{transform:translateX(0) rotate(0)}70%{transform:translateX(calc((100vw - 48px) * .25 - 10px)) rotate(540deg);opacity:1}100%{transform:translateX(calc((100vw - 48px) * .25 - 10px)) rotate(540deg);opacity:0}}
+.st{position:relative;padding:0 14px 0 0;min-width:0}
+.st .pin{width:25px;height:25px;border-radius:50%;background:var(--band);border:3px solid var(--rail);display:grid;place-items:center;position:relative;z-index:1;
+  font:700 13px/1 var(--cond);color:var(--bandsub);transition:border-color .3s,background .3s,transform .3s var(--ease)}
+.st.ok .pin{border-color:var(--pitch);background:var(--pitch);color:#fff}
+.st.warn .pin{border-color:var(--sun);background:var(--sun);color:var(--sunink)}
+.st.bad .pin{border-color:var(--card);background:var(--card);color:#fff}
+.st.live .pin{border-color:var(--sun);animation:beat 1.2s ease-in-out infinite}
+@keyframes beat{50%{transform:scale(1.18)}}
+.st.pop .pin{animation:pop .5s var(--ease)}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.st .t{font:600 15px/1.2 var(--cond);color:var(--bandsub);margin-top:8px}
+.st .v{font:700 21px/1.15 var(--cond);color:var(--bandink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.st .s{font-size:13px;color:var(--bandsub);line-height:1.35;min-height:2.7em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.st .acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.bbtn{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:var(--bandink);border-radius:6px;padding:4px 10px;font:600 14px var(--body);cursor:pointer;transition:background .2s,border-color .2s}
+.bbtn:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.4)}
+.bbtn.sun{background:var(--sun);border-color:var(--sun);color:var(--sunink)}
+.bbtn.sun:hover{filter:brightness(1.07)}
+.bbtn:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:900px){
+  .route{grid-template-columns:minmax(0,1fr) minmax(0,1fr);row-gap:14px}
+  .route::before,.route .ball{display:none}
+  .bar{padding:10px 16px 0}.route{padding:12px 16px 16px}
+}
+
+/* ================= main ================= */
+main{padding:22px 24px 120px;max-width:1500px;margin:0 auto;view-transition-name:main}
+@media (max-width:700px){main{padding:16px 16px 120px}}
+::view-transition-old(main){animation:vt-out .16s ease-in both}
+::view-transition-new(main){animation:vt-in .28s var(--ease) both}
+@keyframes vt-out{to{opacity:0;transform:translateY(-4px)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(8px)}}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.head p{margin:2px 0 0;max-width:70ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel + .panel{margin-top:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:8px;background:var(--ink);color:var(--paper);font:700 19px var(--cond);padding:9px 18px;cursor:pointer;letter-spacing:.2px;transition:transform .15s var(--ease),filter .2s}
+.btn:hover{filter:brightness(1.15)}
+.btn:active{transform:scale(.97)}
+.btn.sun{background:var(--sun);color:var(--sunink)}
+.btn.big{font-size:23px;padding:13px 22px;width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none;transform:none}
+.ghost{border:1px solid var(--line);background:transparent;padding:7px 12px;border-radius:7px;cursor:pointer;text-decoration:none;display:inline-block;color:var(--ink);font-size:14.5px;transition:border-color .2s,background .2s}
+.ghost:hover{border-color:var(--ink2);background:var(--soft)}
+.ghost:disabled{opacity:.5;cursor:not-allowed}
+.linkbtn{background:none;border:0;color:var(--focus);cursor:pointer;padding:0;text-decoration:underline;font-size:inherit}
+input[type=search],input[type=text],input[type=number],select{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--soft);min-width:0}
+input:focus,select:focus{border-color:var(--focus)}
+.msg{font-size:14px;margin-top:8px;min-height:1.2em}.msg.err{color:var(--card)}.msg.ok{color:var(--pitch)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 5px;border-radius:5px;color:#fff;font:700 18px/1 var(--cond);font-variant-numeric:tabular-nums}
+.badge.xl{min-width:66px;height:56px;font-size:40px;border-radius:8px}
+.t90{background:var(--r90)}.t80{background:var(--r80)}.t75{background:var(--r75)}.t70{background:var(--r70)}.t0{background:var(--r0)}
+.tag{font-size:12.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap;display:inline-block;margin:1px 3px 1px 0}
+.tag.warn{border-color:var(--warn);color:var(--warn)}.tag.bad{border-color:var(--card);color:var(--card)}.tag.good{border-color:var(--pitch);color:var(--pitch)}.tag.navy{border-color:var(--focus);color:var(--focus)}
+.empty{padding:28px 6px;color:var(--ink2)}
+.arrow{color:var(--ink2);margin:0 3px}
+.up{color:var(--pitch)}.dn{color:var(--card)}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--ink2);border-radius:999px;padding:1px 4px 1px 10px;font-size:13.5px;margin:2px 3px 0 0}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 4px}
+code.line{display:block;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:13px Consolas,monospace;overflow-wrap:anywhere;margin-top:6px}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.check input{margin-top:4px;accent-color:var(--ink);width:17px;height:17px;flex-shrink:0}
+
+/* ================= overview ================= */
+.ov{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.ov{grid-template-columns:minmax(0,1fr)}}
+.score{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 22px;align-items:end}
+.score .big{font:800 76px/.9 var(--cond);letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.score .of{font-size:15px;color:var(--ink2);padding-bottom:8px}
+.split{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--soft);margin:14px 0 6px}
+.split i{display:block;height:100%;transform-origin:left;animation:grow .9s var(--ease) both}
+.split i.u{background:var(--pitch)}.split i.d{background:var(--card);animation-delay:.1s}
+@keyframes grow{from{transform:scaleX(0)}}
+.legend{display:flex;gap:16px;font-size:14px;flex-wrap:wrap}
+.legend b{font:700 18px var(--cond)}
+.movers{list-style:none;margin:10px 0 0;padding:0}
+.movers li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.movers li:last-child{border-bottom:0}
+.movers li:hover{background:var(--soft)}
+.movers small{display:block;color:var(--ink2);font-size:13px}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+.fact{border:1px solid var(--line);border-radius:8px;padding:9px 11px;cursor:pointer;background:var(--soft);text-align:left;transition:border-color .2s,transform .15s var(--ease)}
+.fact:hover{border-color:var(--ink2);transform:translateY(-1px)}
+.fact b{display:block;font:700 26px/1 var(--cond);font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--ink2)}
+.ntlist{list-style:none;margin:8px 0 0;padding:0;max-height:520px;overflow:auto}
+.ntlist > li{border-bottom:1px solid var(--line)}
+.ntlist summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 2px;cursor:pointer;list-style:none;align-items:center}
+.ntlist summary::-webkit-details-marker{display:none}
+.ntlist summary b{font:600 18px var(--cond)}
+.ntlist summary .io{font-size:13px;white-space:nowrap}
+.ntlist details[open] summary{background:var(--soft)}
+.ntlist .body{padding:6px 2px 12px;font-size:14px;animation:open .3s var(--ease)}
+@keyframes open{from{opacity:0;transform:translateY(-4px)}}
+.sq{display:grid;grid-template-columns:28px minmax(0,1fr) 44px 34px;gap:2px 8px;align-items:center;margin-top:6px;font-size:14px}
+.sq .n{color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums}
+.sq .new{color:var(--pitch);font-weight:600}
+.natl{list-style:none;margin:6px 0 0;padding:0;max-height:300px;overflow:auto;font-size:14.5px}
+.natl li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.checklist{list-style:none;margin:10px 0 0;padding:0}
+.checklist li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.checklist li:last-child{border-bottom:0}
+.checklist .ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:700 13px/1 var(--body);color:#fff;margin-top:2px}
+.ic.ok{background:var(--pitch)}.ic.warn{background:var(--sun);color:var(--sunink)}.ic.bad{background:var(--card)}.ic.off{background:var(--line);color:var(--ink2)}
+.welcome{padding:30px;display:grid;gap:10px;max-width:640px}
+.welcome ol{margin:6px 0 0;padding-left:20px}
+
+/* ================= players ================= */
+.browse{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.browse{grid-template-columns:minmax(0,1fr)}}
+.filters{display:flex;flex-direction:column;gap:12px;position:sticky;top:var(--bandh,190px)}
+@media (max-width:1100px){.filters{position:static}}
+.filters label.f,.filters .f{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--ink2)}
+.filters label.f > *{color:var(--ink)}
+.range{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.range input{width:100%}
+.poz{display:flex;flex-wrap:wrap;gap:3px}
+.poz button{border:1px solid var(--line);background:var(--soft);border-radius:5px;padding:2px 7px;font:600 14px var(--cond);cursor:pointer;color:var(--ink)}
+.poz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.stlist{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--ink)}
+.stlist label{display:flex;gap:7px;align-items:center;cursor:pointer}
+.tablehead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.tablehead .count{font:700 30px var(--cond)}
+.tablewrap{overflow:auto;border-top:1px solid var(--line);max-height:calc(100vh - 330px);min-height:300px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{font:600 15px var(--cond);text-align:left;color:var(--ink2);padding:8px 6px;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);z-index:1;white-space:nowrap}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:3px solid var(--focus)}
+th[aria-sort="descending"] button::after{content:" ▾"}th[aria-sort="ascending"] button::after{content:" ▴"}
+td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer;transition:background .15s}
+tbody tr:hover{background:var(--soft)}
+tbody.fresh tr{animation:rowin .35s var(--ease) both}
+tbody.fresh tr:nth-child(n+2){animation-delay:.02s}tbody.fresh tr:nth-child(n+6){animation-delay:.05s}tbody.fresh tr:nth-child(n+12){animation-delay:.08s}
+@keyframes rowin{from{opacity:0;transform:translateY(4px)}}
+td .who small{display:block;color:var(--ink2);font-size:12.5px}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
+
+/* ================= drawer + dialogs ================= */
+dialog{color:var(--ink)}
+dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(580px,100vw);border:0;border-left:1px solid var(--line);padding:0;background:var(--panel)}
+dialog.drawer[open]{animation:slidein .35s var(--ease)}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}}
+dialog::backdrop{background:rgba(8,18,30,.45);backdrop-filter:blur(2px)}
+.drawer .in{padding:22px}
+.drawer .name{font:700 36px/1.05 var(--cond)}
+.attrs{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:2px 10px;font-size:14px;margin-top:8px}
+.attrs .h{font:600 14px var(--cond);color:var(--ink2)}
+.attrs .v{text-align:right;font-variant-numeric:tabular-nums}
+.attrs .u{color:var(--pitch);font-weight:600}.attrs .d{color:var(--card);font-weight:600}
+dialog.modal{border:1px solid var(--line);border-radius:12px;padding:0;background:var(--panel);width:min(680px,calc(100vw - 32px))}
+dialog.modal[open]{animation:modalin .3s var(--ease)}
+@keyframes modalin{from{opacity:0;transform:translateY(10px) scale(.98)}}
+dialog.modal form,dialog.modal .in{padding:22px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:border-color .2s,background .2s}
+.opt:has(input:checked){border-color:var(--ink);background:var(--soft)}
+.opt .d{grid-column:2;font-size:13.5px;color:var(--ink2)}
+.pathrow{display:flex;gap:8px;margin-top:8px}.pathrow input{flex:1;min-width:0}
+
+/* ================= update (new job) ================= */
+.job{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:16px;align-items:start}
+@media (max-width:1100px){.job{grid-template-columns:minmax(0,1fr)}}
+.step{display:grid;grid-template-columns:40px minmax(0,1fr);gap:0 14px}
+.step + .step{margin-top:14px}
+.step .no{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:700 20px/1 var(--cond);margin-top:16px}
+.step .panel{margin:0}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.seg label{border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14.5px;background:var(--soft);transition:background .2s,color .2s,border-color .2s}
+.seg label:has(input:checked){background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:focus-visible){outline:3px solid var(--focus)}
+.picklist{list-style:none;margin:8px 0 0;padding:0;max-height:300px;overflow:auto;border-top:1px solid var(--line)}
+.picklist li label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14.5px}
+.picklist .c{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.opgrp{font:600 16px var(--cond);color:var(--ink2);margin:14px 0 4px}
+.opgrp:first-child{margin-top:4px}
+.op{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;padding:11px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;align-items:start;margin-bottom:6px;transition:border-color .2s,box-shadow .25s var(--ease)}
+.op:has(input:checked){border-color:var(--ink);box-shadow:inset 4px 0 0 var(--sun)}
+.op input{accent-color:var(--ink);width:17px;height:17px;margin-top:3px}
+.op b{font-weight:600}
+.op .d{grid-column:2/4;font-size:13.5px;color:var(--ink2)}
+.op .time{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.op .time.slow{color:var(--warn);font-weight:600}
+.scale{margin-top:8px;padding:10px 12px;background:var(--soft);border-radius:8px;font-size:13.5px}
+.scale input{width:100%;accent-color:var(--ink)}
+.summary{position:sticky;top:calc(var(--bandh,190px) + 16px)}
+@media (max-width:1100px){.summary{position:static}}
+.sentence{font-size:16.5px;line-height:1.5;margin:6px 0 12px}
+.sentence b{font-weight:600}
+.estimate{display:flex;align-items:baseline;gap:10px;margin:4px 0 10px}
+.estimate b{font:800 48px/1 var(--cond);font-variant-numeric:tabular-nums}
+.stepest{list-style:none;margin:0 0 10px;padding:0;font-size:14px}
+.stepest li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.stepest li span:last-child{color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stepest li.big span:last-child{color:var(--warn);font-weight:600}
+.why{font-size:13.5px;color:var(--warn);margin:8px 0 0;min-height:1.2em}
+.note{border-left:4px solid var(--sun);background:var(--soft);border-radius:0 8px 8px 0;padding:10px 12px;font-size:14px;margin-top:10px}
+.note.bad{border-color:var(--card)}
+
+/* ================= history ================= */
+.tl{list-style:none;margin:0;padding:0 0 0 24px;position:relative}
+.tl::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.tl > li{position:relative;padding:4px 0 18px}
+.tl > li::before{content:"";position:absolute;left:-23px;top:9px;width:14px;height:14px;border-radius:50%;background:var(--panel);border:3px solid var(--ink2)}
+.tl > li.done::before{border-color:var(--pitch);background:var(--pitch)}
+.tl > li.failed::before{border-color:var(--card)}
+.tl > li.running::before{border-color:var(--sun);animation:beat 1.2s infinite}
+.tl .when{font:700 20px var(--cond)}
+.tl .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:4px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px}
+.tl .acts{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;justify-content:flex-end}
+.steprow{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.steprow span{font-size:12.5px;padding:1px 8px;border-radius:999px;background:var(--soft);border:1px solid var(--line);color:var(--ink2)}
+
+/* ================= settings ================= */
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start}
+@media (max-width:500px){.settings{grid-template-columns:minmax(0,1fr)}}
+.settings .panel + .panel{margin-top:0}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:14px;margin:8px 0}
+.kv span:nth-child(odd){color:var(--ink2)}
+.kv span:nth-child(even){overflow-wrap:anywhere}
+
+/* ================= job dock ================= */
+.dock{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(980px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 14px 40px rgba(8,20,35,.28);padding:12px 16px;z-index:30;animation:dockin .45s var(--ease)}
+@keyframes dockin{from{transform:translate(-50%,30px);opacity:0}}
+.dock .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dock .grow{flex:1;min-width:220px}
+.dock .lamp{width:12px;height:12px;border-radius:50%;background:var(--ink2);flex-shrink:0}
+.lamp.run{background:var(--sun);animation:beat 1s infinite}.lamp.ok{background:var(--pitch)}.lamp.err{background:var(--card)}
+.dock b.nm{font:700 19px var(--cond)}
+.prog{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:7px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--sun),#FFD34D);width:0;transition:width .5s var(--ease)}
+.prog.ind i{width:35%!important;animation:ind 1.3s ease-in-out infinite}
+@keyframes ind{from{transform:translateX(-100%)}to{transform:translateX(290%)}}
+.dsteps{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+.dsteps span{font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);transition:all .3s}
+.dsteps span.done{border-color:var(--pitch);color:var(--pitch)}
+.dsteps span.now{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+pre.log{background:var(--logbg);color:var(--logink);border-radius:8px;padding:10px;max-height:260px;overflow:auto;font:12.5px/1.45 Consolas,monospace;white-space:pre-wrap;margin:10px 0 0}
+.toast{position:fixed;right:20px;top:20px;z-index:40;background:var(--ink);color:var(--paper);border-radius:10px;padding:11px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:14.5px;
+  animation:toastin .35s var(--ease)}
+@keyframes toastin{from{opacity:0;transform:translateY(-10px)}}
+/* ================= flags, lang toggle ================= */
+.fi{border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.12);flex-shrink:0;vertical-align:-1px;margin-right:6px}
+.flagph{display:inline-block;width:1.333em;height:1em;border-radius:2px;background:var(--line);margin-right:6px;vertical-align:-1px}
+.langsw{display:flex;border:1px solid rgba(255,255,255,.22);border-radius:7px;overflow:hidden}
+.langsw button{all:unset;cursor:pointer;font:700 13px/1 var(--body);padding:6px 9px;color:var(--bandsub)}
+.langsw button[aria-pressed="true"]{background:var(--sun);color:var(--sunink)}
+.langsw button:focus-visible{outline:2px solid var(--sun);outline-offset:-2px}
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid var(--sun);background:linear-gradient(90deg,rgba(245,183,0,.14),transparent);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.banner b{font:700 18px var(--cond)}
+.banner .grow{flex:1;min-width:220px}
+
+/* ================= player modal ================= */
+dialog.pm{border:0;border-radius:16px;padding:0;background:var(--panel);width:min(1040px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;box-shadow:0 30px 80px rgba(5,15,28,.45)}
+dialog.pm[open]{animation:pmin .38s var(--ease)}
+@keyframes pmin{from{opacity:0;transform:translateY(16px) scale(.97)}}
+.pm .hero{background:linear-gradient(120deg,var(--band) 0%,var(--band2) 70%);color:var(--bandink);padding:22px 24px 18px;position:relative;overflow:hidden}
+.pm .hero::after{content:"";position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;border:14px solid rgba(255,255,255,.05)}
+.pm .hrow{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;position:relative;z-index:1;padding-right:118px}
+@media (max-width:600px){.pm .hrow{padding-right:0;padding-top:30px}}
+.pm .pname{font:800 40px/1 var(--cond);letter-spacing:.2px}
+.pm .pmeta{color:var(--bandsub);margin-top:6px;font-size:14.5px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
+.pm .pmeta .fi{margin-right:5px}
+.pm .ovr{display:flex;align-items:center;gap:10px}
+.pm .ovr .badge.xl{box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.pm .ovr .was{opacity:.55;transform:scale(.8)}
+.pm .dchip{font:700 18px var(--cond);padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.1)}
+.pm .dchip.u{background:var(--pitch);color:#fff}.pm .dchip.d{background:var(--card);color:#fff}
+.pm .nav{position:absolute;right:14px;top:12px;display:flex;gap:6px;z-index:2}
+.pm .nav button{all:unset;cursor:pointer;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);color:var(--bandink);font-size:18px}
+.pm .nav button:hover{background:rgba(255,255,255,.22)}
+.pm .nav button:disabled{opacity:.3;cursor:default}
+.pm .nav button:focus-visible{outline:2px solid var(--sun)}
+.pm .tags{margin-top:10px;position:relative;z-index:1}
+.pm .tags .tag{border-color:rgba(255,255,255,.3);color:var(--bandink)}
+.pm .body{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;padding:20px 24px 24px}
+@media (max-width:820px){.pm .body{grid-template-columns:minmax(0,1fr)}.pm .pname{font-size:32px}}
+.pm h4{font:700 18px var(--cond);margin:0 0 8px}
+.radar svg{width:100%;height:auto;display:block}
+.radar .lg{display:flex;gap:14px;font-size:13px;color:var(--ink2);justify-content:center;margin-top:4px}
+.radar .lg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
+.tally{display:flex;gap:8px;margin:12px 0 4px;flex-wrap:wrap}
+.tally span{flex:1;min-width:70px;text-align:center;border-radius:8px;padding:6px 4px;background:var(--soft);font-size:12.5px;color:var(--ink2)}
+.tally b{display:block;font:800 24px/1 var(--cond);color:var(--ink)}
+.tally .u b{color:var(--pitch)}.tally .d b{color:var(--card)}
+.ag{margin-bottom:14px}
+.ag h5{font:600 15px var(--cond);color:var(--ink2);margin:0 0 4px;display:flex;justify-content:space-between}
+.ar{display:grid;grid-template-columns:minmax(120px,1fr) 30px minmax(90px,1.6fr) 30px 44px;gap:8px;align-items:center;font-size:14px;padding:3px 0}
+.ar .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.ar .n{font-variant-numeric:tabular-nums;font-weight:600}
+.ar .bar{position:relative;height:8px;border-radius:4px;background:var(--soft);overflow:hidden}
+.ar .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;transform-origin:left;animation:grow .7s var(--ease) both}
+.ar .bar i.base{background:var(--line)}
+.ar .bar i.up{background:var(--pitch)}
+.ar .bar i.dn{background:var(--card);opacity:.85}
+.ar .bar i.same{background:var(--ink2);opacity:.55}
+.ar .dl{font:700 14px var(--cond);text-align:center;border-radius:6px;padding:1px 0}
+.ar .dl.u{background:rgba(30,142,90,.14);color:var(--pitch)}.ar .dl.d{background:rgba(215,38,61,.12);color:var(--card)}.ar .dl.z{color:var(--line)}
+.ar.hi{background:linear-gradient(90deg,var(--soft),transparent);border-radius:6px}
+.dtab{width:100%;border-collapse:collapse;font-size:14px}
+.dtab td{padding:6px 4px;border-bottom:1px solid var(--line)}
+.dtab td:first-child{color:var(--ink2);width:38%}
+.dtab tr.ch td:not(:first-child){font-weight:600}
+.dtab .old{color:var(--ink2);text-decoration:line-through;font-weight:400;margin-right:6px}
+.pm .foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 24px 22px}
+.pm .card2{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px}
+
+/* ================= national teams ================= */
+.nt{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.nt{grid-template-columns:minmax(0,1fr)}}
+.ntside{position:sticky;top:calc(var(--bandh,190px) + 12px);max-height:calc(100vh - var(--bandh,190px) - 30px);display:flex;flex-direction:column}
+@media (max-width:1000px){.ntside{position:static;max-height:none}}
+.ntside .lst{list-style:none;margin:8px 0 0;padding:0;overflow:auto;flex:1}
+.ntside .lst button{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:8px 8px;border-radius:7px;align-items:center}
+.ntside .lst button:hover{background:var(--soft)}
+.ntside .lst button[aria-current="true"]{background:var(--ink);color:var(--paper)}
+.ntside .lst button[aria-current="true"] .sub{color:var(--paper);opacity:.8}
+.ntside .lst .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ntside .lst .io{font:600 14px var(--cond);white-space:nowrap}
+.pitch{background:linear-gradient(180deg,#1E7A4C,#176A41);border-radius:12px;padding:14px;position:relative;overflow:hidden;margin-top:12px}
+.pitch::before{content:"";position:absolute;inset:10px;border:2px solid rgba(255,255,255,.18);border-radius:6px;pointer-events:none}
+.pitch::after{content:"";position:absolute;left:10px;right:10px;top:50%;height:2px;background:rgba(255,255,255,.14);pointer-events:none}
+.line{position:relative;z-index:1;margin:6px 0 12px}
+.line .lh{font:600 14px var(--cond);color:rgba(255,255,255,.75);margin:0 0 6px 6px}
+.line .pl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.pc{all:unset;cursor:pointer;background:rgba(255,255,255,.95);color:#10233A;border-radius:9px;padding:6px 9px 6px 6px;display:flex;gap:8px;align-items:center;min-width:170px;max-width:230px;box-shadow:0 3px 10px rgba(0,0,0,.18);transition:transform .15s var(--ease)}
+.pc:hover{transform:translateY(-2px)}
+.pc:focus-visible{outline:3px solid var(--sun)}
+.pc .no{font:800 20px/1 var(--cond);width:26px;text-align:center;color:#52647A}
+.pc .who{min-width:0;flex:1}
+.pc .who b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc .who small{display:block;font-size:11.5px;color:#52647A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc.new{box-shadow:0 0 0 3px var(--sun),0 3px 10px rgba(0,0,0,.18)}
+.pc .nw{font:700 11px var(--body);background:var(--sun);color:var(--sunink);border-radius:4px;padding:1px 4px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px}
+.plist{list-style:none;margin:6px 0 0;padding:0}
+.plist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);align-items:center;font-size:14.5px}
+.plist li[data-pid]{cursor:pointer}
+.plist li[data-pid]:hover{background:var(--soft)}
+.plist small{color:var(--ink2);font-size:12.5px}
+.ntstats{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.ntstats span{background:var(--soft);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--ink2)}
+.ntstats b{font:800 22px var(--cond);color:var(--ink);margin-right:4px}
+
+/* ================= leagues & clubs ================= */
+.lc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.lc{grid-template-columns:minmax(0,1fr)}}
+.lt{width:100%;border-collapse:collapse;font-size:14px}
+.lt th{position:static}
+.lt td{padding:7px 6px}
+.lt .dlt{font:700 15px var(--cond)}
+.mini{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--soft);position:relative;vertical-align:middle;margin-left:6px;overflow:hidden}
+.mini i{position:absolute;top:0;bottom:0;left:50%}
+.mini i.u{background:var(--pitch)}.mini i.d{background:var(--card);right:50%;left:auto}
+.lt .who{cursor:pointer}
+.lt .who:hover{text-decoration:underline}
+
+/* ================= review ================= */
+.rv{display:grid;gap:10px}
+.rvc{display:grid;grid-template-columns:minmax(0,1fr) 120px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;transition:opacity .3s,transform .3s var(--ease)}
+.rvc.gone{opacity:0;transform:translateX(30px)}
+.rvc .side b{display:block;font-size:15.5px}
+.rvc .side small{color:var(--ink2);font-size:13px}
+.rvc .vs{font:700 15px var(--cond);color:var(--ink2);text-align:center}
+.rvc .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:800px){.rvc{grid-template-columns:minmax(0,1fr)}.rvc .vs{text-align:left}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .route.running .ball{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="band" id="band">
+  <div class="bar">
+    <div class="brand"><img src="/ikona.png" alt="">Squad Updater</div>
+    <nav class="tabs" aria-label="Sections">
+      <button data-view="home" aria-current="page" data-hr="Pregled">Overview</button>
+      <button data-view="browse" data-hr="Igrači">Players</button>
+      <button data-view="nt" data-hr="Reprezentacije">National teams</button>
+      <button data-view="lc" data-hr="Lige i klubovi">Leagues &amp; clubs</button>
+      <button data-view="job" data-hr="Novo ažuriranje">New update</button>
+      <button data-view="history" data-hr="Povijest">History</button>
+      <button data-view="settings"><span data-hr="Postavke">Settings</span><span class="dot" id="setdot" hidden></span></button>
+    </nav>
+    <div class="grow"></div>
+    <span class="ver" id="vtag"></span>
+    <div class="langsw" role="group" aria-label="Language"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="hr" aria-pressed="false">HR</button></div>
+    <button class="themebtn" id="themebtn" title="Light / dark" aria-label="Light or dark theme">◐</button>
+  </div>
+
+  <div class="route" id="route" aria-label="Where your database is">
+    <div class="ball" aria-hidden="true"></div>
+    <div class="st" id="st-db">
+      <div class="pin">1</div>
+      <div class="t" data-hr="Tvoja baza">Your database</div>
+      <div class="v" id="r-db">…</div>
+      <div class="s" id="r-dbs"></div>
+      <div class="acts"><button class="bbtn" id="chgdb" data-hr="Promijeni bazu">Change database</button></div>
+    </div>
+    <div class="st" id="st-job">
+      <div class="pin">2</div>
+      <div class="t" data-hr="Ažuriranje">Update</div>
+      <div class="v" id="r-job">…</div>
+      <div class="s" id="r-jobs"></div>
+      <div class="acts"><button class="bbtn" id="r-newjob" data-hr="Novo ažuriranje">New update</button></div>
+    </div>
+    <div class="st" id="st-out">
+      <div class="pin">3</div>
+      <div class="t" data-hr="Nova baza">New database</div>
+      <div class="v" id="r-out">…</div>
+      <div class="s" id="r-outs"></div>
+      <div class="acts"><button class="bbtn" id="openout" data-hr="Otvori mapu">Open folder</button></div>
+    </div>
+    <div class="st" id="st-game">
+      <div class="pin">4</div>
+      <div class="t" data-hr="U igri">In the game</div>
+      <div class="v" id="r-game">…</div>
+      <div class="s" id="r-games"></div>
+      <div class="acts"><button class="bbtn sun" id="copygame" data-hr="Kopiraj u igru">Copy into game</button><button class="bbtn" id="setgame" hidden data-hr="Postavi igru">Set up the game</button></div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= OVERVIEW ================= -->
+<section id="v-home">
+  <div class="banner" id="stale" hidden><div class="grow"><b id="stale-h"></b><div class="sub small" id="stale-s"></div></div><button class="btn" id="stale-b" data-hr="Osvježi podatke">Update the data</button></div>
+  <div class="head"><div><h2 id="h-home">What is new in the new database</h2><p class="sub" id="homesub"></p></div>
+    <div class="row"><button class="ghost" id="h-changed" data-hr="Svi promijenjeni igrači">All changed players</button><a class="ghost" id="h-xlsx" href="/api/v2/izvjestaj" data-hr="Izvještaj u Excelu">Excel report</a></div></div>
+  <div id="home-empty" class="panel welcome" hidden>
+    <h3 data-hr="Još nema ažuriranja">No update yet</h3>
+    <p class="sub" data-hr="Squad Updater čita tvoju bazu, s Transfermarkta i EA FC uzima aktualne podatke i sprema novu bazu pored stare. Tvoja baza se nikad ne mijenja.">Squad Updater reads your database, takes current data from Transfermarkt and EA FC, and saves a new database next to the old one. Your database is never changed.</p>
+    <ol class="sub">
+      <li data-hr="Provjeri bazu gore lijevo (Promijeni bazu ako treba).">Check the database at the top left (Change database if needed).</li>
+      <li data-hr="Na stranici Novo ažuriranje odaberi igrače i promjene.">On New update, choose players and changes.</li>
+      <li data-hr="Kad završi, kopiraj novu bazu u igru.">When it finishes, copy the new database into the game.</li>
+    </ol>
+    <div><button class="btn sun" id="h-start" data-hr="Započni prvo ažuriranje">Start your first update</button></div>
+  </div>
+  <div class="ov" id="home-body">
+    <div>
+      <div class="panel">
+        <h3 data-hr="Ocjene">Ratings</h3>
+        <div class="score"><span class="big" id="o-ch">0</span><span class="of" id="o-chof"></span></div>
+        <div class="split" id="o-split"><i class="u"></i><i class="d"></i></div>
+        <div class="legend"><span class="up"><b id="o-up">0</b> <span data-hr="gore">up</span></span><span class="dn"><b id="o-dn">0</b> <span data-hr="dolje">down</span></span></div>
+        <h3 style="margin-top:16px" data-hr="Najveće promjene">Biggest changes</h3>
+        <ul class="movers" id="o-top"></ul>
+      </div>
+      <div class="panel">
+        <h3 data-hr="Stanje igrača u novoj bazi">Players in the new database</h3>
+        <p class="sub small" data-hr="Klikni za popis tih igrača.">Click to list those players.</p>
+        <div class="facts" id="o-facts"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel" id="o-gamepanel">
+        <h3 data-hr="Je li igra spremna?">Is the game ready?</h3>
+        <ul class="checklist" id="o-check"></ul>
+        <div class="row" style="margin-top:12px"><button class="btn sun" id="o-copy" data-hr="Kopiraj u igru">Copy into game</button><button class="ghost" id="o-revert" hidden data-hr="Vrati igru na prethodno">Restore the game</button></div>
+      </div>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between"><h3 style="margin:0" data-hr="Reprezentacije">National teams</h3><span class="sub small" id="o-ntsub"></span><button class="linkbtn" id="o-ntall" data-hr="Otvori sve">Open all</button></div>
+        <ul class="ntlist" id="o-nt"></ul>
+      </div>
+      <div class="panel" id="o-natpanel">
+        <h3 data-hr="Državljanstvo prema reprezentaciji">Nationality from national team</h3>
+        <p class="sub small" data-hr="Igra prikazuje prvo državljanstvo; pozvani igrač dobiva državu reprezentacije, staro ostaje drugo.">The game shows the first nationality. A called-up player gets the national team's country; the old one becomes the second.</p>
+        <ul class="natl" id="o-nat"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLAYERS ================= -->
+<section id="v-browse" hidden>
+  <div class="head"><div><h2 data-hr="Igrači">Players</h2><p class="sub" data-hr="Cijela baza s promjenama zadnjeg ažuriranja. Klikni igrača za detalje.">The whole database with the last update's changes. Click a player for details.</p></div></div>
+  <div class="browse">
+    <div class="panel filters" aria-label="Filters">
+      <label class="f"><span data-hr="Traži">Search</span><input type="search" id="fq" placeholder="Name, club or ID"></label>
+      <label class="f"><span data-hr="Liga">League</span><select id="fliga"><option value="">—</option></select><div id="cliga"></div></label>
+      <label class="f"><span data-hr="Klub">Club</span><input type="search" id="fklubq" list="klubdl" placeholder="Type a club"><datalist id="klubdl"></datalist><div id="cklub"></div></label>
+      <label class="f"><span data-hr="Država">Nationality</span><input type="search" id="fdrzq" list="drzdl"><datalist id="drzdl"></datalist><div id="cdrz"></div></label>
+      <label class="f"><span data-hr="Reprezentacija">National team</span><select id="frepr"><option value="">—</option></select></label>
+      <div class="f"><span data-hr="Pozicija">Position</span><div class="poz" id="fpoz"></div></div>
+      <div class="f"><span data-hr="Godine">Age</span><div class="range"><input type="number" id="fa0" min="14" max="50" placeholder="14"><span>–</span><input type="number" id="fa1" min="14" max="50" placeholder="50"></div></div>
+      <div class="f"><span data-hr="Ocjena">Overall</span><div class="range"><input type="number" id="fo0" min="40" max="99" placeholder="40"><span>–</span><input type="number" id="fo1" min="40" max="99" placeholder="99"></div></div>
+      <div class="f"><span data-hr="Stanje">Status</span><div class="stlist" id="fst"></div></div>
+      <label class="f"><span data-hr="Ugovor ističe">Contract ends in</span><select id="fug"><option value="">—</option></select></label>
+      <label class="f"><span data-hr="Ocjena promijenjena barem za">Overall changed by at least</span><input type="number" id="fdelta" min="0" max="40" placeholder="0"></label>
+      <div class="row"><button class="ghost" id="freset" data-hr="Očisti filtere">Clear filters</button></div>
+    </div>
+    <div class="panel">
+      <div class="tablehead">
+        <div><span class="count num" id="tcount">…</span> <span class="sub" data-hr="igrača">players</span></div>
+        <div class="row">
+          <button class="btn" id="usescope" data-hr="Ažuriraj samo ove igrače">Update only these players</button>
+          <a class="ghost" id="excsv" data-hr="Izvoz CSV">Export CSV</a>
+          <a class="ghost" id="exxlsx" data-hr="Izvoz Excel">Export Excel</a>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th data-s="ime"><button data-hr="Igrač">Player</button></th>
+            <th data-s="klub"><button data-hr="Liga">League</button></th>
+            <th data-s="poz"><button data-hr="Poz">Pos</button></th>
+            <th data-s="dob" class="n"><button data-hr="God">Age</button></th>
+            <th data-s="ovr" class="n"><button data-hr="Ocjena">Overall</button></th>
+            <th data-s="vr" class="n" aria-sort="descending"><button data-hr="Vrijednost">Value</button></th>
+            <th data-s="ug" class="n"><button data-hr="Ugovor">Contract</button></th>
+            <th data-hr="Stanje">Status</th>
+          </tr></thead>
+          <tbody id="tbody"><tr><td colspan="8" class="empty">…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><button class="ghost" id="pprev" aria-label="Previous page">‹</button><span class="sub num" id="ppage"></span><button class="ghost" id="pnext" aria-label="Next page">›</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NATIONAL TEAMS ================= -->
+<section id="v-nt" hidden>
+  <div class="head"><div><h2 data-hr="Reprezentacije">National teams</h2><p class="sub" id="ntsub" data-hr="Zadnji poziv s Transfermarkta u usporedbi s originalnim sastavom iz tvoje baze.">The latest Transfermarkt call-up compared with the original squad in your database.</p></div></div>
+  <div class="nt">
+    <div class="panel ntside">
+      <input type="search" id="ntq" placeholder="Find a national team">
+      <div class="seg" role="radiogroup" aria-label="Show">
+        <label><input type="radio" name="ntf" value="promijenjeno" checked><span data-hr="Promijenjene">Changed</span></label>
+        <label><input type="radio" name="ntf" value="ostalo"><span data-hr="Preskočene">Skipped</span></label>
+        <label><input type="radio" name="ntf" value=""><span data-hr="Sve">All</span></label>
+      </div>
+      <ul class="lst" id="ntlist"></ul>
+    </div>
+    <div id="ntdet"><div class="panel empty" data-hr="Odaberi reprezentaciju lijevo.">Choose a national team on the left.</div></div>
+  </div>
+</section>
+
+<!-- ================= LEAGUES & CLUBS ================= -->
+<section id="v-lc" hidden>
+  <div class="head"><div><h2 data-hr="Lige i klubovi">Leagues and clubs</h2><p class="sub" data-hr="Prosječna ocjena prije i poslije ažuriranja. Klubovi se uspoređuju po prosjeku najboljih 11. Legende nisu uključene.">Average overall before and after the update. Clubs are compared by the average of their best 11. Legends are left out.</p></div></div>
+  <div class="lc">
+    <div class="panel"><h3 data-hr="Lige">Leagues</h3><div class="tablewrap" style="max-height:none;min-height:0"><table class="lt"><thead><tr><th data-hr="Liga">League</th><th class="n" data-hr="Igrača">Players</th><th class="n" data-hr="Prije">Before</th><th class="n" data-hr="Poslije">After</th><th data-hr="Najveći skok / pad">Biggest rise / fall</th></tr></thead><tbody id="lclige"></tbody></table></div></div>
+    <div class="panel"><div class="row" style="justify-content:space-between"><h3 style="margin:0" data-hr="Klubovi">Clubs</h3>
+      <div class="seg" style="margin:0"><label><input type="radio" name="lcs" value="poslije" checked><span data-hr="Najjači">Strongest</span></label><label><input type="radio" name="lcs" value="gore"><span data-hr="Ojačali">Got stronger</span></label><label><input type="radio" name="lcs" value="dolje"><span data-hr="Oslabili">Got weaker</span></label></div></div>
+      <input type="search" id="lcq" placeholder="Find a club" style="width:100%;margin-top:10px">
+      <div class="tablewrap" style="max-height:70vh;min-height:0;margin-top:8px"><table class="lt"><thead><tr><th data-hr="Klub">Club</th><th class="n" data-hr="Najboljih 11 prije">Best XI before</th><th class="n" data-hr="Poslije">After</th><th class="n" data-hr="Razlika">Change</th></tr></thead><tbody id="lcklub"></tbody></table></div></div>
+  </div>
+</section>
+
+<!-- ================= REVIEW ================= -->
+<section id="v-review" hidden>
+  <div class="head"><div><h2 data-hr="Provjera sumnjivih parova">Check doubtful matches</h2><p class="sub" data-hr="Ovim igračima bi se ocjena promijenila za više od 8, a klub to ne potvrđuje, pa je moguće da je na Transfermarktu nađen imenjak. Odobri ako je to isti igrač; odbaci ako nije (igrač se tada zaključava i ostaje kao u tvojoj bazi).">The overall of these players would change by more than 8 and the club does not confirm the match, so Transfermarkt may have found a namesake. Approve if it is the same player; reject if not (the player is then locked and stays as in your database).</p></div>
+    <span class="sub" id="rvcount"></span></div>
+  <div class="rv" id="rvlist"></div>
+</section>
+
+<!-- ================= NEW UPDATE ================= -->
+<section id="v-job" hidden>
+  <div class="head"><div><h2 data-hr="Novo ažuriranje">New update</h2><p class="sub" data-hr="Tri koraka: koga, što i kamo. Tvoja baza ostaje netaknuta, rezultat je nova baza.">Three steps: who, what and where to. Your database stays untouched; the result is a new database.</p></div></div>
+  <div class="job">
+    <div>
+      <div class="step"><div class="no">1</div><div class="panel">
+        <h3 data-hr="Koje igrače ažurirati?">Which players should be updated?</h3>
+        <p class="sub small" style="margin:0" data-hr="Svi ostali ostaju točno kao u tvojoj bazi.">Everyone else stays exactly as in your database.</p>
+        <div class="seg" role="radiogroup" aria-label="Scope">
+          <label><input type="radio" name="scope" value="sve" checked><span data-hr="Cijelu bazu">Whole database</span></label>
+          <label><input type="radio" name="scope" value="lige"><span data-hr="Lige">Leagues</span></label>
+          <label><input type="radio" name="scope" value="klubovi"><span data-hr="Klubove i reprezentacije">Clubs and national teams</span></label>
+          <label><input type="radio" name="scope" value="filter" id="scope-filter"><span data-hr="Filtrirane igrače">Filtered players</span></label>
+        </div>
+        <div id="sc-lige" hidden><input type="search" id="scligeq" placeholder="Find a league" style="width:100%"><ul class="picklist" id="scligel"></ul></div>
+        <div id="sc-klubovi" hidden>
+          <div class="row"><input type="search" id="scklubq" list="klubdl2" placeholder="Add a club" style="flex:1"><datalist id="klubdl2"></datalist>
+            <select id="screpr"><option value="">+ National team</option></select></div>
+          <div id="scklubc" style="margin-top:8px"></div>
+        </div>
+        <div id="sc-filter" hidden><p class="sub" id="scfiltdesc" style="margin:0"></p></div>
+      </div></div>
+
+      <div class="step"><div class="no">2</div><div class="panel">
+        <h3 data-hr="Što promijeniti?">What should change?</h3>
+        <div id="ops"></div>
+      </div></div>
+
+      <div class="step"><div class="no">3</div><div class="panel">
+        <h3 data-hr="Kamo spremiti?">Where should the result go?</h3>
+        <div class="sub small" data-hr="Kreni od">Start from</div>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="od" value="original" checked><span data-hr="Moje baze (ispočetka)">My database (fresh)</span></label>
+          <label id="od-iz"><input type="radio" name="od" value="izlaz"><span data-hr="Zadnje nove baze (nadogradi)">Last new database (build on it)</span></label>
+        </div>
+        <div class="sub small" data-hr="Nova baza se sprema u">The new database is saved to</div>
+        <div class="pathrow"><input type="text" id="outpath"><button class="ghost" id="outpick" type="button" data-hr="Odaberi…">Choose…</button></div>
+        <p class="sub small" style="margin:6px 0 12px" data-hr="Cijela kopija tvoje baze s promijenjenim datotekama.">A full copy of your database with the changed files.</p>
+        <label class="check" id="ugrow"><input type="checkbox" id="ugame"><span><b data-hr="Odmah kopiraj u igru">Copy into the game straight away</b><br><span class="sub small" id="ugamehint"></span></span></label>
+        <label class="check" id="redrow" style="margin-top:10px"><input type="checkbox" id="redit"><span><b data-hr="Napravi novi edit file">Start a fresh edit file</b><br><span class="sub small" data-hr="Spremljeni edit nadjačava sastave iz baze. Stari se premješta u backup, igra napravi novi iz nove baze. Ručne izmjene iz Edit moda se ne prenose.">A saved edit file overrides squads from the database. The old one is moved to a backup and the game makes a new one from the new database. Manual changes from Edit mode are not carried over.</span></span></label>
+      </div></div>
+    </div>
+
+    <div class="panel summary">
+      <h3 data-hr="Sažetak">Summary</h3>
+      <p class="sentence" id="sentence">…</p>
+      <div class="estimate"><b id="est">–</b><span class="sub" data-hr="otprilike">estimated</span></div>
+      <ul class="stepest" id="stepest"></ul>
+      <p class="sub small" id="esttip" style="margin:0 0 10px"></p>
+      <button class="btn big sun" id="runjob" data-hr="Pokreni ažuriranje">Run update</button>
+      <p class="why" id="why"></p>
+      <div class="msg" id="jobmsg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HISTORY ================= -->
+<section id="v-history" hidden>
+  <div class="head"><div><h2 data-hr="Povijest">History</h2><p class="sub" data-hr="Svako ažuriranje: što je obuhvatilo, koliko je trajalo i kamo je spremljeno.">Every update: what it covered, how long it took and where it was saved.</p></div></div>
+  <ul class="tl" id="hist"></ul>
+</section>
+
+<!-- ================= SETTINGS ================= -->
+<section id="v-settings" hidden>
+  <div class="head"><div><h2 data-hr="Postavke">Settings</h2></div></div>
+  <div class="settings">
+    <div class="panel">
+      <h3 data-hr="Igra">Your game</h3>
+      <p class="sub small" data-hr="Mapa u koju se kopira nova baza: Sider livecpk mapa koju igra učitava prvu.">The folder the new database is copied into: a Sider live CPK folder the game loads first.</p>
+      <div class="pathrow"><input type="text" id="gamepath" placeholder="e.g. D:\PES 2021\livecpk\MyUpdate"><button class="ghost" id="gamepick" type="button" data-hr="Odaberi…">Choose…</button></div>
+      <p class="sub small" id="gameline" style="margin:8px 0 0"></p>
+      <h3 style="margin-top:16px" data-hr="Mapa igre i sider.ini">Game folder and sider.ini</h3>
+      <div class="pathrow"><input type="text" id="igradir" placeholder="e.g. D:\Games\eFootball PES 2021"><button class="ghost" id="igradirb" type="button" data-hr="Odaberi…">Choose…</button></div>
+      <div class="pathrow"><input type="text" id="siderini" placeholder="e.g. D:\Games\eFootball PES 2021\Sider\sider.ini"><button class="ghost" id="siderinib" type="button" data-hr="Odaberi…">Choose…</button></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="savegame" data-hr="Spremi">Save</button><span class="msg" id="setmsg" style="margin:0"></span></div>
+    </div>
+    <div class="panel">
+      <h3 data-hr="Edit file (save)">Edit file (save)</h3>
+      <p class="sub small" data-hr="Igra sprema izmjene iz Edit moda u EDIT00000000. Dok on postoji, sastavi iz njega nadjačavaju novu bazu. FL27 ga drži u Dokumenti\SPGAME\Football Life\<id>\save.">The game keeps Edit mode changes in EDIT00000000. While it exists, its squads override the new database. FL27 keeps it in Documents\SPGAME\Football Life\&lt;id&gt;\save.</p>
+      <div class="kv"><span data-hr="Save mapa">Save folder</span><span id="savedir">…</span><span data-hr="Edit file">Edit file</span><span id="editstate">…</span></div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="seteditreset"><span data-hr="Kod kopiranja u igru uvijek napravi novi edit file (stari ide u backup)">Always start a fresh edit file when copying into the game (the old one goes to a backup)</span></label>
+      <details style="margin-top:10px"><summary class="sub small" data-hr="Druga save mapa (napredno)">Different save folder (advanced)</summary>
+        <div class="pathrow"><input type="text" id="savepath" placeholder="…\save"><button class="ghost" id="savepick" type="button" data-hr="Odaberi…">Choose…</button><button class="ghost" id="savesave" type="button" data-hr="Spremi">Save</button></div></details>
+      <div class="msg" id="editmsg"></div>
+    </div>
+    <div class="panel" id="datapanel">
+      <h3 data-hr="Podaci o ocjenama">Ratings data</h3>
+      <p class="sub small" data-hr="Ocjene se uče iz EA SPORTS FC ocjena i Transfermarkt vrijednosti. Podaci dolaze s programom i tijekom sezone zastarijevaju.">Ratings are learned from EA SPORTS FC ratings and Transfermarkt values. The data ships with the app and gets older over the season.</p>
+      <div id="datainfo" class="sub" style="margin-bottom:10px">…</div>
+      <div class="row"><button class="btn" id="updata" data-hr="Osvježi podatke o ocjenama">Update ratings data</button><span class="sub small" id="updatasub"></span></div>
+      <div class="msg" id="datamsg"></div>
+    </div>
+    <div class="panel">
+      <h3 data-hr="Jezik i izgled">Language and look</h3>
+      <div class="seg"><label><input type="radio" name="lang" value="en"><span>English</span></label><label><input type="radio" name="lang" value="hr"><span>Hrvatski</span></label></div>
+      <div class="seg"><label><input type="radio" name="theme" value=""><span data-hr="Kao sustav">Like the system</span></label><label><input type="radio" name="theme" value="light"><span data-hr="Svijetlo">Light</span></label><label><input type="radio" name="theme" value="dark"><span data-hr="Tamno">Dark</span></label></div>
+      <h3 style="margin-top:14px" data-hr="Program">Program</h3>
+      <p class="sub small" id="verline">…</p>
+      <div class="row"><button class="ghost" id="chkver" data-hr="Provjeri ima li nove verzije">Check for a new version</button><button class="ghost" id="rekat" data-hr="Ponovno složi popis igrača">Rebuild player list</button></div>
+      <div class="msg" id="vermsg"></div>
+      <details style="margin-top:8px"><summary class="sub small" data-hr="Adresa za nadogradnju (napredno)">Update address (advanced)</summary>
+        <div class="pathrow"><input type="text" id="updurl" placeholder="https://…/latest.json"><button class="ghost" id="saveupd" type="button" data-hr="Spremi">Save</button></div></details>
+      <p class="sub small" style="margin-top:10px"><a class="linkbtn" href="/classic" data-hr="Klasični alati (ručni popis, traženje igrača, formula)">Classic tools (manual list, single player search, formula)</a></p>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- job dock -->
+<div class="dock" id="dock" hidden role="status" aria-live="polite">
+  <div class="top">
+    <span class="lamp" id="lamp"></span>
+    <div class="grow">
+      <div><b class="nm" id="jobname"></b> <span class="sub small" id="jobdet"></span></div>
+      <div class="prog" id="prog"><i></i></div>
+      <div class="dsteps" id="jobsteps"></div>
+    </div>
+    <button class="ghost" id="nextbtn" hidden></button>
+    <button class="ghost" id="logbtn" aria-expanded="false" data-hr="Zapis rada">Log</button>
+    <button class="ghost" id="stopbtn" hidden data-hr="Zaustavi">Stop</button>
+    <button class="ghost" id="dockx" hidden aria-label="Close">✕</button>
+  </div>
+  <pre class="log" id="log" hidden></pre>
+</div>
+
+<dialog class="pm" id="drawer" aria-labelledby="dname"><div id="dbody"></div></dialog>
+
+<dialog class="modal" id="copydlg" aria-labelledby="copy-h">
+  <div class="in">
+    <h2 id="copy-h" data-hr="Kopiraj u igru">Copy into game</h2>
+    <p class="sub" id="copytxt"></p>
+    <label class="check" style="margin:12px 0"><input type="checkbox" id="copyreset"><span><b data-hr="Napravi novi edit file">Start a fresh edit file</b><br><span class="sub small" id="copyresetsub"></span></span></label>
+    <div class="note" id="copywarn" hidden></div>
+    <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="ghost" id="copyno" data-hr="Odustani">Cancel</button><button class="btn sun" id="copyok" data-hr="Kopiraj">Copy</button></div>
+    <div class="msg" id="copymsg"></div>
+  </div>
+</dialog>
+
+<dialog class="modal" id="dbdlg" aria-labelledby="dbdlg-h">
+  <form method="dialog" id="dbform">
+    <h2 id="dbdlg-h" data-hr="Otvori bazu">Open a database</h2>
+    <p class="sub small" data-hr="Baza se samo čita. Promjene uvijek idu u novu mapu.">The database is only read. Changes always go to a new folder.</p>
+    <label class="opt"><input type="radio" name="btip" value="igra"><b data-hr="Baza igre">Game database</b><span class="d" data-hr="Ono što igra sada učitava (Sider livecpk mape i CPK-ovi igre).">What the game loads now (Sider live CPK folders and game CPK files).</span></label>
+    <label class="opt"><input type="radio" name="btip" value="mapa"><b data-hr="Mapa s bazom">Database folder</b><span class="d" data-hr="CommonLib, Mod Studio ili raspakirana baza. Player.bin, Team.bin i PlayerAppearance.bin se nađu u podmapama.">CommonLib, Mod Studio or an unpacked database. Player.bin, Team.bin and PlayerAppearance.bin are found in subfolders.</span></label>
+    <label class="opt"><input type="radio" name="btip" value="cpk"><b data-hr="CPK datoteka">CPK file</b><span class="d" data-hr="Baza se čita iz CPK-a.">The database is read from the CPK.</span></label>
+    <label class="opt"><input type="radio" name="btip" value="csv"><b data-hr="CSV iz PES 2020 Editora">PES 2020 Editor CSV</b><span class="d" data-hr="CSV nema klubove: igrači se uparuju po imenu i godinama, rezultat je novi CSV.">No clubs in a CSV: players are matched by name and age, the result is a new CSV.</span></label>
+    <div class="pathrow" id="bputrow"><input type="text" id="bput" placeholder="Folder or .cpk"><button type="button" class="ghost" id="bputb" data-hr="Odaberi…">Choose…</button></div>
+    <div class="pathrow" id="bcsvrow"><input type="text" id="bcsv" placeholder="Editor CSV (optional with a folder or CPK)"><button type="button" class="ghost" id="bcsvb" data-hr="Odaberi…">Choose…</button></div>
+    <div class="msg" id="dbmsg"></div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="ghost" value="cancel" formnovalidate data-hr="Odustani">Cancel</button><button class="btn" id="dbok" value="default" data-hr="Otvori">Open</button></div>
+  </form>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path, body){
+  const r = await fetch(path, body===undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.greska || ('Error ' + r.status));
+  return j;
+}
+function msg(id, t, kind){ const m=$(id); if(!m) return; m.textContent=t||''; m.classList.toggle('err', kind===true||kind==='err'); m.classList.toggle('ok', kind==='ok'); }
+function toast(t){ const d=document.createElement('div'); d.className='toast'; d.setAttribute('role','status'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(), 3800); }
+
+/* ---------------- flags ---------------- */
+const FLAGS = Object.fromEntries(`afghanistan:af|albania:al|algeria:dz|american samoa:as|andorra:ad|angola:ao|anguilla:ai|antigua and barbuda:ag|argentina:ar|armenia:am|aruba:aw|australia:au|austria:at|azerbaijan:az|bahamas:bs|bahrain:bh|bangladesh:bd|barbados:bb|belarus:by|belgium:be|belize:bz|benin:bj|bermuda:bm|bhutan:bt|bolivia:bo|bosnia and herzegovina:ba|botswana:bw|brazil:br|british virgin islands:vg|brunei darussalam:bn|bulgaria:bg|burkina faso:bf|burundi:bi|cabo verde:cv|cape verde:cv|cambodia:kh|cameroon:cm|canada:ca|cayman islands:ky|central african rep.:cf|central african republic:cf|chad:td|chile:cl|china:cn|china pr:cn|chinese taipei:tw|colombia:co|comoros:km|congo:cg|congo dr:cd|dr congo:cd|cook islands:ck|costa rica:cr|croatia:hr|cuba:cu|curaçao:cw|curacao:cw|cyprus:cy|czech republic:cz|czechia:cz|côte d'ivoire:ci|cote d'ivoire:ci|ivory coast:ci|denmark:dk|djibouti:dj|dominica:dm|dominican republic:do|ecuador:ec|egypt:eg|el salvador:sv|england:gb-eng|equatorial guinea:gq|eritrea:er|estonia:ee|eswatini:sz|ethiopia:et|faroe islands:fo|fiji:fj|finland:fi|france:fr|gabon:ga|gambia:gm|georgia:ge|germany:de|ghana:gh|gibraltar:gi|greece:gr|grenada:gd|guam:gu|guatemala:gt|guinea:gn|guinea-bissau:gw|guyana:gy|haiti:ht|honduras:hn|hong kong:hk|hungary:hu|iceland:is|india:in|indonesia:id|iran:ir|iraq:iq|ireland:ie|republic of ireland:ie|israel:il|italy:it|jamaica:jm|japan:jp|jordan:jo|kazakhstan:kz|kenya:ke|korea dpr:kp|north korea:kp|kosovo:xk|kuwait:kw|kyrgyzstan:kg|laos:la|latvia:lv|lebanon:lb|lesotho:ls|liberia:lr|libya:ly|liechtenstein:li|lithuania:lt|luxembourg:lu|macau:mo|madagascar:mg|malawi:mw|malaysia:my|maldives:mv|mali:ml|malta:mt|mauritania:mr|mauritius:mu|mexico:mx|moldova:md|monaco:mc|mongolia:mn|montenegro:me|montserrat:ms|morocco:ma|mozambique:mz|myanmar:mm|namibia:na|nepal:np|netherlands:nl|new caledonia:nc|new zealand:nz|nicaragua:ni|niger:ne|nigeria:ng|north macedonia:mk|northern ireland:gb-nir|norway:no|oman:om|pakistan:pk|palau:pw|palestine:ps|panama:pa|papua new guinea:pg|paraguay:py|peru:pe|philippines:ph|poland:pl|portugal:pt|puerto rico:pr|qatar:qa|republic of korea:kr|korea republic:kr|south korea:kr|romania:ro|russia:ru|rwanda:rw|saint kitts and nevis:kn|saint lucia:lc|samoa:ws|san marino:sm|sao tome and principe:st|saudi arabia:sa|scotland:gb-sct|senegal:sn|serbia:rs|seychelles:sc|sierra leone:sl|singapore:sg|slovakia:sk|slovenia:si|solomon islands:sb|somalia:so|south africa:za|south sudan:ss|spain:es|sri lanka:lk|st vincent & grenadines:vc|sudan:sd|suriname:sr|sweden:se|switzerland:ch|syria:sy|tahiti:pf|tajikistan:tj|tanzania:tz|thailand:th|timor-leste:tl|togo:tg|tonga:to|trinidad and tobago:tt|tunisia:tn|turkey:tr|türkiye:tr|turkmenistan:tm|turks and caicos is.:tc|uganda:ug|ukraine:ua|united arab emirates:ae|uruguay:uy|us virgin islands:vi|usa:us|united states:us|uzbekistan:uz|vanuatu:vu|venezuela:ve|vietnam:vn|wales:gb-wls|yemen:ye|zambia:zm|zimbabwe:zw`.split('|').map(x => x.split(':')));
+const flagCode = n => FLAGS[String(n||'').trim().toLowerCase()] || null;
+const flag = (n, title) => { const c = flagCode(n); return c ? `<span class="fi fi-${c}" title="${esc(title||n)}"></span>` : (n ? `<span class="flagph" title="${esc(n)}"></span>` : ''); };
+const lname = n => { n = String(n||''); if(LANG==='hr') return n;
+  return n.replace(/^Ostali klubovi \((.*)\)$/, 'Other clubs ($1)').replace(/ (\d)\. liga$/, ' division $1').replace(/^Bez kluba$/, 'No club'); };
+const kakoTxt = k => { k = String(k||''); if(LANG!=='hr') return k;
+  return k.replace('league squad on Transfermarkt','sastav lige na Transfermarktu').replace(/^manual list \((.*)\)$/, 'ručni popis ($1)').replace('manual','ručno'); };
+const leagueCountry = n => { n = String(n||''); let m = n.match(/^(.*?) \d\. liga/); if(m) return m[1]; m = n.match(/\(([^)]+)\)/); return m ? m[1] : ''; };
+const ATTR_HR = {'Offensive Awareness':'Napadačka svijest','Ball Control':'Kontrola lopte','Dribbling':'Driblanje','Tight Possession':'Uski posjed','Low Pass':'Niska dodavanja','Lofted Pass':'Visoka dodavanja',
+  'Finishing':'Završnica','Heading':'Igra glavom','Place Kicking':'Prekidi','Curl':'Falš','Speed':'Brzina','Acceleration':'Ubrzanje','Kicking Power':'Snaga udarca','Jump':'Skok',
+  'Physical Contact':'Fizički kontakt','Balance':'Ravnoteža','Stamina':'Izdržljivost','Defensive Awareness':'Obrambena svijest','Ball Winning':'Oduzimanje lopte','Aggression':'Agresivnost',
+  'GK Awareness':'Golmanska svijest','GK Catching':'Hvatanje','GK Clearing':'Izbijanje','GK Reflexes':'Refleksi','GK Reach':'Doseg'};
+const aName = n => LANG==='hr' ? (ATTR_HR[n]||n) : n;
+const AG = [
+  ['Attacking','Napad',['Offensive Awareness','Finishing','Heading','Kicking Power','Place Kicking','Curl']],
+  ['Ball skills','Tehnika',['Ball Control','Dribbling','Tight Possession','Balance']],
+  ['Passing','Dodavanje',['Low Pass','Lofted Pass']],
+  ['Physical','Fizička sprema',['Speed','Acceleration','Jump','Physical Contact','Stamina']],
+  ['Defending','Obrana',['Defensive Awareness','Ball Winning','Aggression']],
+  ['Goalkeeping','Golman',['GK Awareness','GK Catching','GK Clearing','GK Reflexes','GK Reach']]];
+const RADAR = [['Pace','Brzina',['Speed','Acceleration']],['Shooting','Šut',['Finishing','Kicking Power','Offensive Awareness']],['Passing','Dodavanje',['Low Pass','Lofted Pass','Curl']],
+  ['Dribbling','Driblanje',['Ball Control','Dribbling','Tight Possession','Balance']],['Defending','Obrana',['Defensive Awareness','Ball Winning','Aggression']],['Physical','Fizika',['Physical Contact','Jump','Stamina']]];
+const RADAR_GK = [['Awareness','Svijest',['GK Awareness']],['Catching','Hvatanje',['GK Catching']],['Clearing','Izbijanje',['GK Clearing']],['Reflexes','Refleksi',['GK Reflexes']],['Reach','Doseg',['GK Reach']],['Jump','Skok',['Jump']]];
+
+/* ---------------- language ---------------- */
+let LANG = 'en';
+const L = (en, hr) => LANG==='hr' ? hr : en;
+function applyLang(){
+  document.documentElement.lang = LANG;
+  $$('[data-hr]').forEach(el => { if(el.dataset.en===undefined) el.dataset.en = el.textContent; el.textContent = LANG==='hr' ? el.dataset.hr : el.dataset.en; });
+  $('#fq').placeholder = L('Name, club or ID','Ime, klub ili ID'); $('#fklubq').placeholder = L('Type a club','Upiši klub');
+  $('#scligeq').placeholder = L('Find a league','Nađi ligu'); $('#scklubq').placeholder = L('Add a club','Dodaj klub');
+  $('#ntq').placeholder = L('Find a national team','Nađi reprezentaciju'); $('#lcq').placeholder = L('Find a club','Nađi klub');
+  $$('.langsw button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang===LANG));
+  $$('input[name=lang]').forEach(r => r.checked = r.value===LANG);
+}
+async function setLang(l){
+  LANG = l; applyLang(); api('/api/v2/postavke', {jezik: LANG}).catch(()=>{});
+  renderOps(); if(OPC){ fillOptions(); chips(); } renderRoute(); estimate(); load();
+  if(CUR==='home') loadOverview(); if(CUR==='history') loadHistory(); if(CUR==='nt') renderNT(); if(CUR==='lc') renderLC(); if(CUR==='review') renderReview();
+  if($('#drawer').open && PM.id) openPlayer(PM.id);
+}
+document.addEventListener('click', e => { const b = e.target.closest('.langsw button'); if(b) setLang(b.dataset.lang); });
+
+/* ---------------- theme ---------------- */
+function setTheme(v){ if(v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme;
+  try{ localStorage.setItem('su-theme', v||''); }catch(e){} $$('input[name=theme]').forEach(r => r.checked = r.value===(v||'')); }
+try{ setTheme(localStorage.getItem('su-theme')||''); }catch(e){}
+$('#themebtn').addEventListener('click', () => { const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const cur = document.documentElement.dataset.theme || (dark?'dark':'light'); setTheme(cur==='dark'?'light':'dark'); });
+$$('input[name=theme]').forEach(r => r.addEventListener('change', () => setTheme(r.value)));
+
+/* ---------------- formatting ---------------- */
+const N = x => Number(x||0).toLocaleString(LANG==='hr'?'hr-HR':'en-GB');
+const tier = v => v>=90?'t90':v>=80?'t80':v>=75?'t75':v>=70?'t70':'t0';
+const badge = (v, cls='') => v==null ? '<span class="sub">–</span>' : `<span class="badge ${tier(v)} ${cls}">${v}</span>`;
+const money = v => !v ? '–' : v >= 1e6 ? (v/1e6).toLocaleString('en-GB',{maximumFractionDigits: v>=1e7?0:1}) + ' M' : Math.round(v/1e3) + ' K';
+const dat = v => v ? `${String(v%100).padStart(2,'0')}.${String(Math.floor(v/100)%100).padStart(2,'0')}.${Math.floor(v/10000)}` : '–';
+function when(iso){ if(!iso) return '–'; const d = new Date(iso); if(isNaN(d)) return iso;
+  const now = new Date(), mins = Math.round((now - d)/60000);
+  const hm = d.toLocaleTimeString(LANG==='hr'?'hr-HR':'en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(mins < 1) return L('just now','upravo');
+  if(mins < 60) return L(`${mins} min ago`,`prije ${mins} min`);
+  if(d.toDateString()===now.toDateString()) return L('today ','danas ') + hm;
+  const y = new Date(now); y.setDate(now.getDate()-1); if(d.toDateString()===y.toDateString()) return L('yesterday ','jučer ') + hm;
+  return d.toLocaleDateString(LANG==='hr'?'hr-HR':'en-GB',{day:'numeric',month:'short'}) + ' ' + hm; }
+const dur = s => s==null ? '' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s/60) + ' min' : (s/3600).toFixed(1) + ' h';
+const fmin = x => x < 1 ? '< 1 min' : x < 90 ? Math.round(x) + ' min' : (x/60).toFixed(1).replace('.', LANG==='hr' ? ',' : '.') + ' h';
+function countUp(el, to){ to = Number(to)||0; const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce || to < 10){ el.textContent = N(to); return; } const t0 = performance.now(), D = 900;
+  const f = t => { const k = Math.min(1,(t-t0)/D), e = 1 - Math.pow(1-k,3); el.textContent = N(Math.round(to*e)); if(k<1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
+const ST = {
+  promijenjen:['Changed','Promijenjen','good'], posudba:['On loan','Na posudbi','navy'], bez_kluba:['No club','Bez kluba',''], nije_na_tm:['Not on Transfermarkt','Nije na TM-u','warn'],
+  sumnjivo:['Check match','Provjeri par','warn'], rucno:['Manual list','Ručni popis','navy'], za_brisanje:['To be removed','Za brisanje','bad'],
+  zakljucan:['Locked','Zaključan','navy'], obrisan:['Removed','Obrisan','bad'], bez_facea:['No real face','Bez facea','']};
+const stName = k => (ST[k]||[k,k])[LANG==='hr'?1:0];
+const STEPN = {'Prepare output folder':['Prepare output folder','Priprema nove baze'],'Find unrated players on Transfermarkt':['Find unrated players','Traženje neocijenjenih'],
+  'Match players with Transfermarkt':['Match with Transfermarkt','Uparivanje s Transfermarktom'],'Download contracts and loans':['Contracts and loans','Ugovori i posudbe'],
+  'Download injury history':['Injury history','Povijest ozljeda'],'Find retired players and duplicates':['Retired and duplicates','Umirovljeni i duplikati'],
+  'Write new database':['Ratings and the new database','Ocjene i zapis baze'],'National teams':['National teams','Reprezentacije'],'Update player list':['Player list','Popis igrača'],
+  'Copy into game':['Copy into game','Kopiranje u igru'],'Ratings and data':['Ratings and data','Ocjene i podaci'],'Find players on Transfermarkt':['Find players','Traženje igrača']};
+const stepName = n => (STEPN[n]||[n,n])[LANG==='hr'?1:0];
+
+/* ---------------- views ---------------- */
+const VIEWS = ['home','browse','nt','lc','review','job','history','settings'];
+let CUR = 'home';
+function view(v, noAnim){
+  if(!VIEWS.includes(v)) v = 'home';
+  const go = () => { VIEWS.forEach(x => { $('#v-'+x).hidden = x!==v; const b = document.querySelector(`[data-view="${x}"]`); if(b) b.setAttribute('aria-current', x===v || (v==='review' && x==='home') ? 'page' : 'false'); }); CUR = v; window.scrollTo({top:0}); };
+  if(!noAnim && document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go); else go();
+  try{ localStorage.setItem('su-view', v); }catch(e){}
+  if(v==='home') loadOverview();
+  if(v==='history') loadHistory();
+  if(v==='job') estimate();
+  if(v==='settings'){ loadData(); loadVersion(false); }
+  if(v==='nt') loadNT();
+  if(v==='lc') loadLC();
+  if(v==='review') loadReview();
+}
+$$('[data-view]').forEach(b => b.addEventListener('click', () => view(b.dataset.view)));
+new ResizeObserver(() => document.documentElement.style.setProperty('--bandh', $('#band').offsetHeight + 'px')).observe($('#band'));
+
+/* ---------------- project + route ---------------- */
+let PR = null, OPC = null, DEFAULTS_APPLIED = false, HIST = [], JOB = {radi:false};
+async function loadProject(){
+  try{ PR = await api('/api/v2/projekt'); }catch(e){ setTimeout(loadProject, 2000); return; }
+  const prev = LANG; LANG = (PR.postavke && PR.postavke.jezik) || 'en'; applyLang(); if(prev!==LANG) renderOps();
+  $$('input[name=lang]').forEach(r => r.checked = r.value===LANG);
+  const k = PR.katalog, g = PR.igra || {};
+  $('#outpath').value = PR.izlaz;
+  $('#od-iz').hidden = !PR.izlaz_postoji; if(!PR.izlaz_postoji) document.querySelector('input[name=od][value=original]').checked = true;
+  $('#gamepath').value = g.cilj || ''; $('#updurl').value = PR.postavke.update_url || '';
+  $('#igradir').value = PR.postavke.igra_dir || ''; $('#siderini').value = PR.postavke.sider_ini || '';
+  $('#savepath').value = PR.postavke.save_dir || '';
+  $('#ugrow').hidden = !g.cilj || PR.tip==='csv'; $('#ugamehint').textContent = g.cilj || '';
+  $('#redrow').hidden = $('#ugrow').hidden || !(g.edit && g.edit.save);
+  $('#seteditreset').checked = g.edit_reset !== false;
+  $('#gameline').innerHTML = g.cilj ? L('If this is a new folder, add this line above the other cpk.root lines in sider.ini:','Ako je to nova mapa, dodaj ovaj redak iznad ostalih cpk.root redaka u sider.ini:') + `<code class="line">cpk.root = "${esc(g.cilj)}"</code>` : '';
+  $('#savedir').textContent = g.edit && g.edit.save ? g.edit.save : L('Not found. Set the game folder (with sys.ini) or choose it below.','Nije pronađena. Postavi mapu igre (sa sys.ini) ili je odaberi dolje.');
+  $('#editstate').textContent = !g.edit || !g.edit.save ? '–' : g.edit.postoji ? L('exists, saved ','postoji, spremljen ') + when(g.edit.vrijeme) : L('none (the game makes a new one from the database)','nema ga (igra napravi novi iz baze)');
+  if(!DEFAULTS_APPLIED && PR.postavke.posao_zadano){ DEFAULTS_APPLIED = true; const z = PR.postavke.posao_zadano;
+    Object.keys(opState).forEach(k2 => opState[k2] = (z.opcije||[]).includes(k2)); if(z.skala!=null) SKALA = z.skala; renderOps();
+    const od = document.querySelector(`input[name=od][value="${z.od||'original'}"]`); if(od && !od.closest('label').hidden) od.checked = true;
+    if(!$('#ugrow').hidden) $('#ugame').checked = !!z.u_igru; }
+  if(!DEFAULTS_APPLIED) DEFAULTS_APPLIED = true;
+  $('#redit').checked = g.edit_reset !== false;
+  renderRoute();
+  if(!k && PR.greska){ $('#tbody').innerHTML = `<tr><td colspan="8" class="empty"><b>${L('The database could not be read.','Baza se ne može učitati.')}</b><br>${esc(PR.greska)}</td></tr>`; setTimeout(loadProject, 6000); return; }
+  if(!k){ setTimeout(loadProject, 4000); return; }
+  if(!OPC){ OPC = await api('/api/v2/opcije'); fillOptions(); }
+  load(); estimate();
+}
+function setSt(id, cls){ const el = $(id); const had = el.className; el.className = 'st ' + (cls||''); if(cls && !had.includes(cls) && (cls==='ok')) { el.classList.add('pop'); setTimeout(()=>el.classList.remove('pop'), 600); } }
+function renderRoute(){
+  if(!PR) return;
+  const k = PR.katalog, g = PR.igra || {}, h = HIST[0];
+  // 1 database
+  $('#r-db').textContent = PR.opis; $('#r-db').title = PR.opis;
+  $('#r-dbs').textContent = k ? `${N(k.igraca)} ${L('players','igrača')} · ${L('read only','samo se čita')}` : (PR.greska ? L('Could not be read','Ne može se učitati') : L('Reading the database…','Čitam bazu…'));
+  setSt('#st-db', k ? 'ok' : PR.greska ? 'bad' : 'live');
+  // 2 update
+  if(JOB.radi && JOB.tip==='posao'){ $('#r-job').textContent = L('Running…','Radi…'); $('#r-jobs').textContent = JOB.det || ''; setSt('#st-job','live'); }
+  else if(h){ $('#r-job').textContent = when(h.vrijeme);
+    const t = h.trajanja ? Object.values(h.trajanja).reduce((a,b)=>a+b,0) : null;
+    $('#r-jobs').textContent = (h.status==='done' ? L('Finished','Završeno') : h.status==='failed' ? L('Stopped or failed','Prekinuto') : L('Running','Radi')) + (t ? ' · ' + dur(t) : '') + ' · ' + (h.opcije||[]).length + ' ' + L('changes','promjena');
+    setSt('#st-job', h.status==='done' ? 'ok' : h.status==='failed' ? 'bad' : 'live'); }
+  else { $('#r-job').textContent = L('Not run yet','Još nije pokrenuto'); $('#r-jobs').textContent = L('Choose players and changes','Odaberi igrače i promjene'); setSt('#st-job',''); }
+  $('#route').classList.toggle('running', !!(JOB.radi && JOB.tip==='posao'));
+  // 3 new database
+  const parts = String(PR.izlaz).split(/[\\/]/); $('#r-out').textContent = parts.slice(-1)[0] || PR.izlaz; $('#r-out').title = PR.izlaz;
+  const nj = PR.izlaz_info ? PR.izlaz_info.poslovi.length : 0;
+  $('#r-outs').textContent = PR.izlaz_postoji ? `${PR.izlaz}` : L('Created by the first update','Nastaje prvim ažuriranjem');
+  $('#openout').disabled = !PR.izlaz_postoji;
+  setSt('#st-out', PR.izlaz_postoji ? 'ok' : '');
+  // 4 game
+  const copyable = !!g.cilj && PR.izlaz_postoji && PR.tip!=='csv';
+  $('#copygame').hidden = !g.cilj || PR.tip==='csv'; $('#setgame').hidden = !!g.cilj && PR.tip!=='csv';
+  $('#copygame').disabled = !copyable || JOB.radi;
+  let gv, gs, gc;
+  if(PR.tip==='csv'){ gv = L('CSV result','CSV rezultat'); gs = L('Import the new CSV with PES 2020 Editor.','Uvezi novi CSV u PES 2020 Editoru.'); gc=''; }
+  else if(!g.cilj){ gv = L('Not set up','Nije postavljeno'); gs = L('Choose the folder your game loads','Odaberi mapu koju igra učitava'); gc=''; }
+  else if(!PR.izlaz_postoji){ gv = L('Nothing to copy yet','Još nema što kopirati'); gs = g.cilj; gc=''; }
+  else if(PR.igra_radi){ gv = L('Game is running','Igra radi'); gs = L('Close it before copying','Zatvori je prije kopiranja'); gc='warn'; }
+  else if(g.azurno && g.edit && g.edit.postoji && g.u_igri && g.edit.vrijeme < g.u_igri.vrijeme){ gv = L('Up to date','Ažurno'); gs = L('Edit file is older than the copy: squads may be overridden','Edit file je stariji od kopije: može nadjačati sastave'); gc='warn'; }
+  else if(g.azurno){ gv = L('Up to date','Ažurno'); gs = g.u_igri ? L('Copied ','Kopirano ') + when(g.u_igri.vrijeme) : L('Same files as the new database','Iste datoteke kao nova baza'); gc='ok'; }
+  else { gv = L('Older than the new database','Starije od nove baze'); gs = L('Copy to see the changes in the game','Kopiraj da vidiš promjene u igri'); gc='warn'; }
+  $('#r-game').textContent = gv; $('#r-games').textContent = gs; setSt('#st-game', gc);
+  $('#setdot').hidden = !(!g.cilj && PR.tip!=='csv');
+}
+$('#openout').addEventListener('click', () => api('/api/v2/otvori', {}).catch(e => toast(e.message)));
+$('#r-newjob').addEventListener('click', () => view('job'));
+$('#setgame').addEventListener('click', () => view('settings'));
+
+/* ---------------- overview ---------------- */
+async function loadOverview(){
+  let d; try{ d = await api('/api/v2/pregled'); }catch(e){ return; }
+  const has = !!d.posao;
+  $('#home-empty').hidden = has; $('#home-body').hidden = !has; $('#h-changed').hidden = !has;
+  if(!has){ $('#homesub').textContent = ''; $('#h-home').textContent = L('Welcome','Dobro došao'); return; }
+  $('#h-home').textContent = L('What is new in the new database','Što je novo u novoj bazi');
+  const p = d.posao, opName = k => { for(const g of OPS) for(const o of g.items) if(o.k===k) return LANG==='hr'?o.nh:o.n; return k; };
+  const t = p.trajanja ? Object.values(p.trajanja).reduce((a,b)=>a+b,0) : null;
+  $('#homesub').textContent = L('Compared with your database. Last update ','U usporedbi s tvojom bazom. Zadnje ažuriranje ') + `${when(p.vrijeme)}${t ? ' (' + dur(t) + ')' : ''}: ${scopeText(p.opseg_opis)}, ${(p.opcije||[]).map(opName).join(', ')}.`;
+  countUp($('#o-ch'), d.promijenjeno);
+  $('#o-chof').textContent = L(`of ${N(d.igraca)} players have a new overall`, `od ${N(d.igraca)} igrača ima novu ocjenu`);
+  const tot = Math.max(1, d.gore + d.dolje);
+  const [iu, id] = $$('#o-split i'); iu.style.width = (100*d.gore/tot)+'%'; id.style.width = (100*d.dolje/tot)+'%';
+  iu.style.animation='none'; id.style.animation='none'; void iu.offsetWidth; iu.style.animation=''; id.style.animation='';
+  countUp($('#o-up'), d.gore); countUp($('#o-dn'), d.dolje);
+  OV_TOP = d.top.map(x => x.id); OV_NAT = (d.drzavljanstva||[]).map(x => x.id);
+  $('#o-top').innerHTML = d.top.map(x => `<li data-pid="${x.id}"><span><b>${esc(x.ime)}</b><small>${esc(x.klub||'')}</small></span>
+    <span>${badge(x.ovr0)}<span class="arrow">→</span>${badge(x.ovr)}</span></li>`).join('') || `<li class="sub">${L('No changes.','Nema promjena.')}</li>`;
+  const F_ = [['promijenjen'],['posudba'],['nije_na_tm'],['sumnjivo'],['bez_kluba'],['za_brisanje'],['zakljucan']];
+  $('#o-facts').innerHTML = F_.filter(([k]) => d.status[k]).map(([k]) => `<button class="fact" data-st="${k}"><b>${N(d.status[k])}</b><span>${esc(stName(k))}</span></button>`).join('');
+  // game checklist
+  const g = PR ? PR.igra || {} : {};
+  const it = (cls, ic, a, b) => `<li><span class="ic ${cls}">${ic}</span><span><b>${a}</b>${b ? `<br><span class="sub small">${b}</span>` : ''}</span></li>`;
+  const rows = [];
+  if(!g.cilj) rows.push(it('off','?', L('Game folder not set','Mapa igre nije postavljena'), L('Settings → Your game','Postavke → Igra')));
+  else rows.push(g.azurno ? it('ok','✓', L('The game has the new database','Igra ima novu bazu'), g.u_igri ? L('Copied ','Kopirano ') + when(g.u_igri.vrijeme) : g.cilj)
+                          : it('warn','!', L('The game has an older database','Igra ima stariju bazu'), Object.entries(g.isto||{}).filter(([,v])=>!v).map(([n])=>n).join(', ') + L(' differ',' se razlikuju')));
+  if(g.edit && g.edit.save) rows.push(g.edit.postoji ? it('warn','!', L('An edit file exists','Postoji edit file'), L(`Saved ${when(g.edit.vrijeme)}. Its squads override national teams from the database.`,`Spremljen ${when(g.edit.vrijeme)}. Njegovi sastavi nadjačavaju reprezentacije iz baze.`))
+                                                   : it('ok','✓', L('No edit file','Nema edit filea'), L('The game builds squads from the new database.','Igra slaže sastave iz nove baze.')));
+  rows.push(PR && PR.igra_radi ? it('warn','!', L('The game is running','Igra radi'), L('Restart it to load the changes.','Ponovno je pokreni da učita promjene.')) : it('ok','✓', L('The game is closed','Igra je zatvorena'), ''));
+  $('#o-check').innerHTML = rows.join('');
+  $('#o-copy').hidden = !g.cilj || (g.azurno && !(g.edit && g.edit.postoji)); $('#o-copy').disabled = !PR || !PR.izlaz_postoji;
+  $('#o-revert').hidden = !g.u_igri;
+  $('#o-copy').textContent = g.azurno ? L('Start a fresh edit file','Napravi novi edit file') : L('Copy into game','Kopiraj u igru');
+  // national teams
+  const R = d.repr || {};
+  $('#o-ntsub').textContent = R.vrijeme ? L(`${R.promijenjeno} changed · ${R.isto} same · ${R.preskoceno} skipped`, `${R.promijenjeno} promijenjeno · ${R.isto} isto · ${R.preskoceno} preskočeno`) : '';
+  $('#o-nt').innerHTML = (R.timovi||[]).map(t_ => `<li><details><summary><b>${flag(t_.tim)}${esc(t_.tim)}</b><span class="io"><span class="up">+${t_.ulaze.length}</span> <span class="dn">−${t_.izlaze.length}</span></span></summary>
+     <div class="body">${t_.ulaze.length ? `<div><span class="sub">${L('In','Ulaze')}:</span> ${t_.ulaze.map(esc).join(', ')}</div>` : ''}${t_.izlaze.length ? `<div><span class="sub">${L('Out','Izlaze')}:</span> ${t_.izlaze.map(esc).join(', ')}</div>` : ''}
+     <div class="sub small" style="margin-top:4px">${L(`Called up ${t_.pozvanih}, in your database ${t_.u_bazi}`, `Pozvano ${t_.pozvanih}, u tvojoj bazi ${t_.u_bazi}`)}${t_.nema ? L(` · ${t_.nema} not in the database (filled from the old squad)`, ` · ${t_.nema} nema u bazi (dopunjeno iz starog sastava)`) : ''}</div>
+     <div class="sq">${t_.sastav.map(x => `<span class="n">${x.broj??''}</span><span class="${t_.ulaze.includes(x.ime)?'new':''}">${esc(x.ime)} <span class="sub small">${esc(x.klub||'')}</span></span><span class="sub">${esc(x.poz)}</span>${badge(x.ovr)}`).join('')}</div></div></details></li>`).join('')
+    || `<li class="sub" style="padding:10px 0">${L('National teams were not part of the last update.','Reprezentacije nisu bile dio zadnjeg ažuriranja.')}</li>`;
+  // nationality
+  $('#o-natpanel').hidden = !(d.drzavljanstva||[]).length;
+  $('#o-nat').innerHTML = (d.drzavljanstva||[]).map(x => `<li data-pid="${x.id}"><span>${esc(x.ime)}</span><span class="sub">${flag(x.prije)}${esc(x.prije)} <span class="arrow">→</span> <b style="color:var(--ink)">${flag(x.sada)}${esc(x.sada)}</b></span></li>`).join('');
+}
+let OV_TOP = [], OV_NAT = [];
+$('#o-top').addEventListener('click', e => { const li = e.target.closest('[data-pid]'); if(li) openPlayer(+li.dataset.pid, OV_TOP); });
+$('#o-nat').addEventListener('click', e => { const li = e.target.closest('[data-pid]'); if(li) openPlayer(+li.dataset.pid, OV_NAT); });
+$('#o-facts').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if(!b) return; if(b.dataset.st==='sumnjivo') view('review'); else showStatus(b.dataset.st); });
+$('#o-ntall').addEventListener('click', () => view('nt'));
+$('#stale-b').addEventListener('click', () => $('#updata').click());
+$('#o-revert').addEventListener('click', async () => {
+  if(!confirm(L('Put the game back to how it was before the last copy? The files copied last time are removed or replaced with the backup, and a moved edit file is put back.','Vratiti igru na stanje prije zadnjeg kopiranja? Zadnje kopirane datoteke se uklanjaju ili zamjenjuju backupom, a premješteni edit file se vraća.'))) return;
+  try{ await api('/api/v2/vrati_igru', {}); toast(L('Restoring the game…','Vraćam igru…')); poll(); }catch(e){ toast(e.message); } });
+$('#h-changed').addEventListener('click', () => showStatus('promijenjen'));
+$('#h-start').addEventListener('click', () => view('job'));
+$('#o-copy').addEventListener('click', openCopy);
+function scopeText(s){ s = String(s||''); if(LANG!=='hr') return s;
+  return s.replace('whole database','cijela baza').replace(/league\(s\)/,'liga').replace(/club\(s\)\/team\(s\)/,'klubova/reprezentacija').replace('filtered players','filtrirani igrači').replace('players','igrača'); }
+function showStatus(s){ $('#freset').click(); F.st.add(s); const cb = document.querySelector(`#fst input[data-st="${s}"]`); if(cb) cb.checked = true; load(); view('browse'); }
+
+/* ---------------- copy into game ---------------- */
+function openCopy(){
+  if(!PR) return; const g = PR.igra || {};
+  $('#copytxt').textContent = L(`The changed files from the new database are copied to ${g.cilj}. Files already there are kept in a backup folder first.`,
+                                `Promijenjene datoteke iz nove baze kopiraju se u ${g.cilj}. Datoteke koje su već tamo prvo se spreme u backup mapu.`);
+  const sv = g.edit && g.edit.save;
+  $('#copyreset').closest('label').hidden = !sv; $('#copyreset').checked = g.edit_reset !== false;
+  $('#copyresetsub').textContent = sv ? (g.edit.postoji ? L(`An edit file from ${when(g.edit.vrijeme)} exists and would override the new squads. It is moved to a backup next to the save folder.`,`Postoji edit file od ${when(g.edit.vrijeme)} koji bi nadjačao nove sastave. Premješta se u backup pored save mape.`)
+                                                    : L('There is no edit file now; nothing to move.','Sada nema edit filea, nema što premjestiti.')) : '';
+  $('#copywarn').hidden = !PR.igra_radi; $('#copywarn').textContent = L('The game is running. Close it first, then copy.','Igra radi. Prvo je zatvori, onda kopiraj.');
+  $('#copyok').disabled = PR.igra_radi; msg('#copymsg','');
+  $('#copydlg').showModal();
+}
+$('#copygame').addEventListener('click', openCopy);
+$('#copyno').addEventListener('click', () => $('#copydlg').close());
+$('#copyok').addEventListener('click', async () => {
+  try{ await api('/api/v2/u_igru', {reset_edit: $('#copyreset').checked}); $('#copydlg').close(); toast(L('Copying into the game…','Kopiram u igru…')); poll(); }
+  catch(e){ msg('#copymsg', e.message, 'err'); }
+});
+
+/* ---------------- browse ---------------- */
+const F = {liga:[], klub:[], drz:[], poz:new Set(), st:new Set(), sort:'vr', dir:'desc', page:1};
+const POS = ['GK','CB','LB','RB','DMF','CMF','LMF','RMF','AMF','LWF','RWF','SS','CF'];
+function fillOptions(){
+  $('#fliga').innerHTML = '<option value="">—</option>' + OPC.lige.map(l => `<option value="${esc(l.k)}">${esc(lname(l.n))} (${N(l.c)})</option>`).join('');
+  const kl = OPC.klubovi.map(c => `<option value="${esc(c.n)} · ${esc(c.l)}" data-id="${c.id}"></option>`).join('');
+  $('#klubdl').innerHTML = kl; $('#klubdl2').innerHTML = kl;
+  $('#drzdl').innerHTML = OPC.drzave.map(d => `<option value="${esc(d.n)}"></option>`).join('');
+  $('#frepr').innerHTML = '<option value="">—</option>' + OPC.repr.map(r => `<option>${esc(r.n)}</option>`).join('');
+  $('#screpr').innerHTML = `<option value="">${L('+ National team','+ Reprezentacija')}</option>` + OPC.repr.map(r => `<option>${esc(r.n)}</option>`).join('');
+  $('#fpoz').innerHTML = POS.map(p => `<button type="button" data-p="${p}" aria-pressed="${F.poz.has(p)}">${p}</button>`).join('');
+  $('#fst').innerHTML = Object.keys(ST).map(k => `<label><input type="checkbox" data-st="${k}" ${F.st.has(k)?'checked':''}> ${esc(stName(k))}</label>`).join('');
+  const y = new Date().getFullYear();
+  $('#fug').innerHTML = '<option value="">—</option>' + [0,1,2,3,4,5].map(i => `<option>${y+i}</option>`).join('');
+  renderScopeLeagues();
+}
+function query(){
+  const q = new URLSearchParams(), v = id => $(id).value.trim();
+  if(v('#fq')) q.set('q', v('#fq'));
+  if(F.liga.length) q.set('liga', F.liga.join('|'));
+  if(F.klub.length) q.set('klub', F.klub.map(c=>c.id).join('|'));
+  if(F.drz.length) q.set('drz', F.drz.join('|'));
+  if(v('#frepr')) q.set('repr', v('#frepr'));
+  if(F.poz.size) q.set('poz', [...F.poz].join(','));
+  if(v('#fa0')) q.set('dob_od', v('#fa0')); if(v('#fa1')) q.set('dob_do', v('#fa1'));
+  if(v('#fo0')) q.set('ovr_od', v('#fo0')); if(v('#fo1')) q.set('ovr_do', v('#fo1'));
+  if(F.st.size) q.set('st', [...F.st].join(','));
+  if(v('#fug')) q.set('ug', v('#fug'));
+  if(v('#fdelta')) q.set('delta', v('#fdelta'));
+  q.set('sort', F.sort); q.set('dir', F.dir);
+  return q;
+}
+let loadT = null;
+function load(){ clearTimeout(loadT); loadT = setTimeout(doLoad, 150); }
+async function doLoad(){
+  const q = query(); q.set('page', F.page); q.set('n', 50);
+  let j; try{ j = await api('/api/v2/igraci?' + q); }catch(e){ $('#tbody').innerHTML = `<tr><td colspan="8" class="empty">${esc(e.message)}</td></tr>`; return; }
+  $('#tcount').textContent = N(j.ukupno);
+  const pages = Math.max(1, Math.ceil(j.ukupno / j.n));
+  $('#ppage').textContent = `${j.page} / ${N(pages)}`; $('#pprev').disabled = j.page<=1; $('#pnext').disabled = j.page>=pages;
+  const qs = query().toString();
+  $('#excsv').href = '/api/v2/izvoz?format=csv&' + qs; $('#exxlsx').href = '/api/v2/izvoz?format=xlsx&' + qs;
+  const tb = $('#tbody'); tb.classList.remove('fresh'); void tb.offsetWidth; tb.classList.add('fresh'); TBL = j.igraci.map(x => x.id);
+  tb.innerHTML = j.igraci.length ? j.igraci.map(x => {
+    const d = (x.ovr!=null && x.ovr0!=null) ? x.ovr - x.ovr0 : 0;
+    return `<tr data-id="${x.id}" tabindex="0">
+      <td><span class="who"><b>${flag(x.drz)}${esc(x.ime)}</b><small>${esc(x.klub || (x.repr.length ? x.repr.join(', ') : L('no club','bez kluba')))}</small></span></td>
+      <td class="sub">${esc(lname(x.liga))}</td><td>${esc(x.poz)}</td><td class="n">${x.dob??''}</td>
+      <td class="n">${d ? `<span class="sub">${x.ovr0}</span><span class="arrow">→</span>` : ''}${badge(x.ovr)}</td>
+      <td class="n">${money(x.vr)}</td><td class="n">${x.ug ? Math.floor(x.ug/10000) : '–'}</td>
+      <td>${x.st.filter(s => s!=='bez_facea' || F.st.has('bez_facea')).map(s => `<span class="tag ${(ST[s]||[])[2]||''}">${esc(stName(s))}</span>`).join('')}</td></tr>`; }).join('')
+    : `<tr><td colspan="8" class="empty">${L('No players match these filters.','Nijedan igrač ne odgovara filterima.')} <button class="linkbtn" onclick="document.getElementById('freset').click()">${L('Clear filters','Očisti filtere')}</button></td></tr>`;
+}
+['#fq','#fa0','#fa1','#fo0','#fo1','#fdelta'].forEach(id => $(id).addEventListener('input', () => { F.page = 1; load(); }));
+['#frepr','#fug'].forEach(id => $(id).addEventListener('change', () => { F.page = 1; load(); }));
+$('#fliga').addEventListener('change', e => { const v = e.target.value; if(v && !F.liga.includes(v)) F.liga.push(v); e.target.value=''; chips(); F.page=1; load(); });
+$('#fklubq').addEventListener('change', e => { const o = [...$('#klubdl').options].find(o => o.value===e.target.value); if(o && !F.klub.some(c=>c.id==o.dataset.id)) F.klub.push({id:+o.dataset.id, n:o.value}); e.target.value=''; chips(); F.page=1; load(); });
+$('#fdrzq').addEventListener('change', e => { const v = e.target.value.trim(); if(v && OPC.drzave.some(d=>d.n===v) && !F.drz.includes(v)) F.drz.push(v); e.target.value=''; chips(); F.page=1; load(); });
+function chips(){
+  const ln = k => (OPC.lige.find(l=>l.k===k)||{n:k}).n, ch = (lbl, k, v) => `<span class="chip">${esc(lbl)}<button type="button" data-rm="${k}" data-v="${esc(v)}" aria-label="Remove">×</button></span>`;
+  $('#cliga').innerHTML = F.liga.map(k => ch(ln(k),'liga',k)).join('');
+  $('#cklub').innerHTML = F.klub.map(c => ch(c.n.split(' · ')[0],'klub',c.id)).join('');
+  $('#cdrz').innerHTML = F.drz.map(d => ch(d,'drz',d)).join('');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]'); if(!b) return;
+  const k = b.dataset.rm, v = b.dataset.v;
+  if(k==='klub') F.klub = F.klub.filter(c => String(c.id)!==v); else F[k] = F[k].filter(x => x!==v);
+  chips(); F.page=1; load();
+});
+$('#fpoz').addEventListener('click', e => { const p = e.target.dataset.p; if(!p) return; F.poz.has(p) ? F.poz.delete(p) : F.poz.add(p); e.target.setAttribute('aria-pressed', F.poz.has(p)); F.page=1; load(); });
+$('#fst').addEventListener('change', e => { const s = e.target.dataset.st; if(!s) return; e.target.checked ? F.st.add(s) : F.st.delete(s); F.page=1; load(); });
+$('#freset').addEventListener('click', () => {
+  ['#fq','#fa0','#fa1','#fo0','#fo1','#fdelta','#frepr','#fug'].forEach(id => $(id).value='');
+  F.liga=[]; F.klub=[]; F.drz=[]; F.poz.clear(); F.st.clear(); F.page=1;
+  $$('#fpoz button').forEach(b => b.setAttribute('aria-pressed','false'));
+  $$('#fst input').forEach(i => i.checked=false); chips(); load();
+});
+$$('th[data-s] button').forEach(b => b.addEventListener('click', () => {
+  const s = b.parentElement.dataset.s;
+  if(F.sort===s) F.dir = F.dir==='desc' ? 'asc' : 'desc'; else { F.sort = s; F.dir = ['ime','klub','poz'].includes(s) ? 'asc' : 'desc'; }
+  $$('th[data-s]').forEach(th => th.removeAttribute('aria-sort'));
+  b.parentElement.setAttribute('aria-sort', F.dir==='desc' ? 'descending' : 'ascending'); F.page=1; load();
+}));
+$('#pprev').addEventListener('click', () => { F.page--; load(); });
+$('#pnext').addEventListener('click', () => { F.page++; load(); });
+let TBL = [];
+$('#tbody').addEventListener('click', e => { const tr = e.target.closest('[data-id]'); if(tr) openPlayer(+tr.dataset.id, TBL); });
+$('#tbody').addEventListener('keydown', e => { if(e.key==='Enter'){ const tr = e.target.closest('[data-id]'); if(tr) openPlayer(+tr.dataset.id, TBL); } });
+$('#usescope').addEventListener('click', () => {
+  SCOPE_FILTER = Object.fromEntries(query()); $('#scope-filter').checked = true; syncScope();
+  $('#scfiltdesc').textContent = L(`${$('#tcount').textContent} players from the current filter on the Players page.`, `${$('#tcount').textContent} igrača iz trenutnog filtera na stranici Igrači.`);
+  view('job');
+});
+
+/* ---------------- player modal ---------------- */
+const PM = {id:null, list:[]};
+function radarSvg(A, B, gk){
+  const ax = gk ? RADAR_GK : RADAR, R = 92, cx = 130, cy = 118, n = ax.length;
+  const val = (S, ks) => S ? ks.reduce((a,k) => a + (S[k]||40), 0) / ks.length : null;
+  const pt = (i, v) => { const a = -Math.PI/2 + i * 2*Math.PI/n, r = Math.max(0, Math.min(1, (v-40)/59)) * R; return [cx + r*Math.cos(a), cy + r*Math.sin(a)]; };
+  const poly = S => ax.map((x,i) => pt(i, val(S, x[2])).map(z => z.toFixed(1)).join(',')).join(' ');
+  let g = '';
+  for(const f of [.25,.5,.75,1]) g += `<polygon points="${ax.map((x,i) => { const a = -Math.PI/2 + i*2*Math.PI/n; return (cx+R*f*Math.cos(a)).toFixed(1)+','+(cy+R*f*Math.sin(a)).toFixed(1); }).join(' ')}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  ax.forEach((x,i) => { const a = -Math.PI/2 + i*2*Math.PI/n, lx = cx + (R+20)*Math.cos(a), ly = cy + (R+16)*Math.sin(a);
+    const v0 = Math.round(val(A, x[2])), v1 = B ? Math.round(val(B, x[2])) : v0, d = v1 - v0;
+    g += `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(a)).toFixed(1)}" y2="${(cy+R*Math.sin(a)).toFixed(1)}" stroke="var(--line)"/>`;
+    g += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="var(--ink2)" font-family="Barlow">${esc(LANG==='hr'?x[1]:x[0])}</text>`;
+    g += `<text x="${lx.toFixed(1)}" y="${(ly+13).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="12.5" font-weight="700" fill="${d>0?'var(--pitch)':d<0?'var(--card)':'var(--ink)'}" font-family="Barlow Condensed">${v1}${d ? (d>0?' +':' ')+d : ''}</text>`; });
+  g += `<polygon points="${poly(A)}" fill="none" stroke="var(--ink2)" stroke-width="2" stroke-dasharray="4 3" opacity=".8"/>`;
+  if(B) g += `<polygon points="${poly(B)}" fill="rgba(245,183,0,.28)" stroke="var(--sun)" stroke-width="2.5" stroke-linejoin="round"><animate attributeName="opacity" from="0" to="1" dur=".6s"/></polygon>`;
+  return `<svg viewBox="0 0 260 250" role="img" aria-label="${L('Attribute radar','Radar atributa')}">${g}</svg>`;
+}
+async function openPlayer(id, list){
+  if(list) PM.list = list; PM.id = id;
+  if(!$('#drawer').open){ $('#dbody').innerHTML = '<div class="hero"><div class="pname">…</div></div><p class="empty" style="padding:24px">…</p>'; $('#drawer').showModal(); }
+  let d; try{ d = await api('/api/v2/igrac?id=' + id); }catch(e){ $('#dbody').innerHTML = `<div style="padding:24px"><p class="msg err">${esc(e.message)}</p><button class="ghost" onclick="document.getElementById('drawer').close()">${L('Close','Zatvori')}</button></div>`; return; }
+  if(PM.id !== id) return;
+  const x = d.igrac, A = d.prije || {}, B = d.sada, P0 = d.pod0 || {}, P1 = d.pod1 || P0;
+  const gk = x.poz === 'GK', locked = x.st.includes('zakljucan');
+  const dOvr = (x.ovr!=null && x.ovr0!=null) ? x.ovr - x.ovr0 : 0;
+  const names = AG.flatMap(g => g[2]);
+  let up = 0, dn = 0; names.forEach(k => { if(B && B[k] > A[k]) up++; else if(B && B[k] < A[k]) dn++; });
+  const pos = PM.list.indexOf(id);
+  const row = k => { const a = A[k], b = B ? B[k] : a, dd = b - a, pc = v => ((v-40)/59*100).toFixed(1);
+    const lo = Math.min(a,b), hi = Math.max(a,b);
+    const bars = `<i class="base" style="width:${pc(lo)}%"></i>` + (dd ? `<i class="${dd>0?'up':'dn'}" style="left:${pc(lo)}%;width:${(pc(hi)-pc(lo)).toFixed(1)}%"></i>` : '');
+    return `<div class="ar ${Math.abs(dd)>=5?'hi':''}"><span>${esc(aName(k))}</span><span class="v">${a}</span><span class="bar">${bars}</span><span class="n">${b}</span><span class="dl ${dd>0?'u':dd<0?'d':'z'}">${dd>0?'+'+dd:dd<0?dd:'·'}</span></div>`; };
+  const groups = (gk ? [AG[5], ...AG.slice(0,5)] : AG.slice(0,5)).map(g => { const ks = g[2].filter(k => A[k]!=null);
+    const s0 = ks.reduce((t,k)=>t+A[k],0), s1 = ks.reduce((t,k)=>t+(B?B[k]:A[k]),0), dg = Math.round((s1-s0)/ks.length*10)/10;
+    return `<div class="ag"><h5><span>${esc(LANG==='hr'?g[1]:g[0])}</span><span class="${dg>0?'up':dg<0?'dn':'sub'}">${dg>0?'+':''}${dg||''}</span></h5>${ks.map(row).join('')}</div>`; }).join('')
+    + (!gk ? `<details class="ag"><summary class="sub small">${L('Goalkeeping','Golman')}</summary>${AG[5][2].map(row).join('')}</details>` : '');
+  const dr = (lbl, a, b, fmt) => { fmt = fmt || (v => esc(v ?? '–')); const ch = String(a ?? '') !== String(b ?? '');
+    return `<tr class="${ch?'ch':''}"><td>${lbl}</td><td>${ch ? `<span class="old">${fmt(a)}</span>` : ''}${fmt(b)}</td></tr>`; };
+  const natf = v => v ? flag(v) + esc(v) : '–', datf = v => v ? dat(v) : '–';
+  const wf = v => v ? `${v}/4` : '–', ir = v => v ? ['', L('low','niska'), L('medium','srednja'), L('high','visoka')][v] || v : '–';
+  const data = `<table class="dtab">
+      ${dr(L('Age','Godine'), A.Age, B ? B.Age : A.Age)}
+      ${dr(L('Height','Visina'), A.Height, B ? B.Height : A.Height, v => v ? v + ' cm' : '–')}
+      ${dr(L('Nationality','Državljanstvo'), P0.nat, P1.nat, natf)}
+      ${dr(L('Second nationality','Drugo državljanstvo'), P0.nat2, P1.nat2, natf)}
+      ${dr(L('Position','Pozicija'), P0.pos, P1.pos)}
+      ${dr(L('Stronger foot','Jača noga'), P0.foot, P1.foot, v => v==='L' ? L('left','lijeva') : v==='R' ? L('right','desna') : '–')}
+      ${dr(L('Weak foot use','Slabija noga – korištenje'), A['Weak foot usage'], B ? B['Weak foot usage'] : A['Weak foot usage'], wf)}
+      ${dr(L('Weak foot accuracy','Slabija noga – preciznost'), A['Weak foot accuracy'], B ? B['Weak foot accuracy'] : A['Weak foot accuracy'], wf)}
+      ${dr(L('Injury resistance','Otpornost na ozljede'), A['Injury resistance'], B ? B['Injury resistance'] : A['Injury resistance'], ir)}
+      ${dr(L('Reputation','Reputacija'), A.Reputation, B ? B.Reputation : A.Reputation)}
+      ${dr(L('Contract until','Ugovor do'), P0.ugovor, P1.ugovor, datf)}
+      ${dr(L('On loan until','Posudba do'), P0.posudba, P1.posudba, datf)}
+    </table>`;
+  $('#dbody').innerHTML = `
+    <div class="hero">
+      <div class="nav"><button id="pmprev" aria-label="${L('Previous player','Prethodni igrač')}" ${pos<=0?'disabled':''}>‹</button><button id="pmnext" aria-label="${L('Next player','Sljedeći igrač')}" ${pos<0||pos>=PM.list.length-1?'disabled':''}>›</button><button id="dclose" aria-label="${L('Close','Zatvori')}">✕</button></div>
+      <div class="hrow"><div>
+        <div class="pname" id="dname">${esc(x.ime)}</div>
+        <div class="pmeta"><span>${flag(P1.nat || x.drz)}${esc(P1.nat || x.drz || '')}${P1.nat2 ? ' · ' + flag(P1.nat2) + esc(P1.nat2) : ''}</span><span>${esc(x.klub || L('no club','bez kluba'))}</span><span>${esc(lname(x.liga))}</span>
+          <span><b>${esc(x.poz)}</b> · ${x.dob} ${L('yrs','god')}</span>${x.repr.length ? `<span>${flag(x.repr[0])}${esc(x.repr.join(', '))}</span>` : ''}${x.vr ? `<span>${money(x.vr)} €</span>` : ''}</div>
+        <div class="tags">${x.st.filter(s_ => s_!=='bez_facea').map(s_ => `<span class="tag">${esc(stName(s_))}</span>`).join('')}</div>
+      </div>
+      <div class="ovr">${dOvr ? `<span class="was">${badge(x.ovr0,'xl')}</span>` : ''}${badge(x.ovr,'xl')}${dOvr ? `<span class="dchip ${dOvr>0?'u':'d'}">${dOvr>0?'+':''}${dOvr}</span>` : `<span class="dchip">${L('unchanged','bez promjene')}</span>`}</div></div>
+    </div>
+    <div class="body">
+      <div>
+        <h4>${L('Attribute shape','Profil atributa')}</h4>
+        <div class="radar">${radarSvg(A, B, gk)}<div class="lg"><span><i style="background:var(--ink2)"></i>${L('your database','tvoja baza')}</span><span><i style="background:var(--sun)"></i>${L('new database','nova baza')}</span></div></div>
+        <div class="tally"><span class="u"><b>${up}</b>${L('went up','raslo')}</span><span class="d"><b>${dn}</b>${L('went down','palo')}</span><span><b>${names.length-up-dn}</b>${L('same','isto')}</span></div>
+        <div class="card2"><h4>${L('Player data','Podaci igrača')}</h4>${data}</div>
+        <div class="card2"><h4>Transfermarkt</h4>
+          ${d.tm ? `<div>${esc(d.tm.name||'')}</div><div class="sub small">${esc(d.tm.club||'')}${d.tm.value ? ' · ' + money(d.tm.value) + ' €' : ''}${d.tm.age ? ' · ' + d.tm.age + ' ' + L('yrs','god') : ''}${d.tm.contract ? ' · ' + L('contract ','ugovor ') + esc(d.tm.contract) : ''}</div>
+            <div class="sub small" style="margin-top:4px">${L('Matched via: ','Uparen preko: ')}${esc(kakoTxt(d.kako)||'–')}</div>${d.tm_link ? `<a class="linkbtn small" href="${esc(d.tm_link)}" target="_blank" rel="noopener">${L('Open the Transfermarkt profile','Otvori profil na Transfermarktu')}</a>` : ''}`
+            : `<div class="sub">${L('Not matched with Transfermarkt.','Nije uparen s Transfermarktom.')}</div>`}
+          ${d.za_provjeru ? `<div class="note bad" style="font-size:13.5px">${L('Doubtful match: the overall would change by more than 8 and the club does not confirm it.','Sumnjiv par: ocjena bi se promijenila više od 8, a klub to ne potvrđuje.')} <button class="linkbtn" id="pmrv">${L('Review','Provjeri')}</button></div>` : ''}
+          ${x.pos_do ? `<div class="sub small" style="margin-top:6px">${L('On loan from ','Na posudbi iz ')}<b>${esc(x.vlasnik||'?')}</b> ${L('until','do')} ${dat(x.pos_do)}</div>` : ''}
+        </div>
+      </div>
+      <div><h4>${L('Attributes','Atributi')} <span class="sub small" style="font-weight:400">${L('your database → new database','tvoja baza → nova baza')}</span></h4>${groups}</div>
+    </div>
+    <div class="foot">
+      <button class="ghost" id="dlock">${locked ? L('Unlock','Otključaj') : L('Lock this player','Zaključaj igrača')}</button>
+      ${x.st.includes('promijenjen') ? `<button class="ghost" id="dundo">${L('Undo for this player','Poništi za ovog igrača')}</button>` : ''}
+      <span class="sub small">${L('A locked player is never changed by later updates. ← → move through the list.','Zaključan igrač se u kasnijim ažuriranjima ne mijenja. ← → listaju popis.')}</span>
+      <span class="msg" id="dmsg" style="margin:0"></span>
+    </div>`;
+  $('#dclose').addEventListener('click', () => $('#drawer').close());
+  $('#pmprev').addEventListener('click', () => stepPlayer(-1)); $('#pmnext').addEventListener('click', () => stepPlayer(1));
+  if($('#pmrv')) $('#pmrv').addEventListener('click', () => { $('#drawer').close(); view('review'); });
+  $('#dlock').addEventListener('click', async () => { try{ await api('/api/v2/zakljucaj', {id:x.id, da:!locked}); openPlayer(x.id); load(); }catch(e){ msg('#dmsg', e.message, 'err'); } });
+  if($('#dundo')) $('#dundo').addEventListener('click', async () => {
+    if(!confirm(L("Restore this player in the new database to your database's data and lock them?",'Vratiti igrača u novoj bazi na podatke iz tvoje baze i zaključati ga?'))) return;
+    try{ await api('/api/v2/ponisti', {id:x.id}); openPlayer(x.id); load(); toast(L('Player restored','Igrač vraćen')); }catch(e){ msg('#dmsg', e.message, 'err'); } });
+}
+function stepPlayer(k){ const i = PM.list.indexOf(PM.id), j = i + k; if(i < 0 || j < 0 || j >= PM.list.length) return; openPlayer(PM.list[j]); }
+document.addEventListener('keydown', e => { if(!$('#drawer').open) return; if(e.key==='ArrowLeft'){ e.preventDefault(); stepPlayer(-1); } if(e.key==='ArrowRight'){ e.preventDefault(); stepPlayer(1); } });
+$('#drawer').addEventListener('click', e => { if(e.target === $('#drawer')) $('#drawer').close(); });
+
+/* ---------------- national teams ---------------- */
+let NTD = null, NTSEL = null;
+const LINES = [['Goalkeepers','Golmani'],['Defenders','Obrana'],['Midfielders','Vezni red'],['Forwards','Napad']];
+async function loadNT(sel){
+  if(!NTD){ $('#ntlist').innerHTML = '<li class="sub" style="padding:10px">…</li>'; try{ NTD = await api('/api/v2/reprezentacije'); }catch(e){ $('#ntlist').innerHTML = `<li class="msg err">${esc(e.message)}</li>`; return; } }
+  if(sel) NTSEL = sel;
+  if(!NTSEL){ const f = NTD.timovi.find(t => t.status==='promijenjeno'); NTSEL = f ? f.tim : (NTD.timovi[0]||{}).tim; }
+  renderNT();
+}
+function ntStatus(t){ return {promijenjeno:L('changed','promijenjeno'), isto:L('same as original','isto kao original'), premalo:L('too few in database','premalo u bazi'), prazno:L('no call-up on Transfermarkt','nema poziva na TM-u'), nepovezano:L('not linked to Transfermarkt','nije povezano s TM-om')}[t.status] || t.status; }
+function renderNT(){
+  if(!NTD) return;
+  const q = $('#ntq').value.trim().toLowerCase(), f = document.querySelector('input[name=ntf]:checked').value;
+  const T = NTD.timovi.filter(t => (!q || t.tim.toLowerCase().includes(q)) && (!f || (f==='promijenjeno' ? t.status==='promijenjeno' : t.status!=='promijenjeno')));
+  $('#ntlist').innerHTML = T.map(t => `<li><button data-nt="${esc(t.tim)}" aria-current="${t.tim===NTSEL}"><span class="nm">${flag(t.tim)}${esc(t.tim)}</span>
+      <span class="io">${t.status==='promijenjeno' ? `<span class="up">+${t.ulaze.length}</span> <span class="dn">−${t.izlaze.length}</span>` : `<span class="sub small">${esc(ntStatus(t))}</span>`}</span></button></li>`).join('')
+    || `<li class="sub" style="padding:10px">${L('No national teams match.','Nijedna reprezentacija ne odgovara.')}</li>`;
+  const t = NTD.timovi.find(x => x.tim===NTSEL);
+  if(!t){ $('#ntdet').innerHTML = `<div class="panel empty">${L('Choose a national team on the left.','Odaberi reprezentaciju lijevo.')}</div>`; return; }
+  const why = {premalo: L(`Only ${t.u_bazi} of the ${t.pozvanih} called-up players are in your database, too few to replace the squad. The original squad stays.`, `U tvojoj bazi je samo ${t.u_bazi} od ${t.pozvanih} pozvanih igrača, premalo da se sastav zamijeni. Ostaje originalni sastav.`),
+               prazno: L('Transfermarkt shows no current call-up for this team. The original squad stays.','Transfermarkt nema aktualni poziv za ovu reprezentaciju. Ostaje originalni sastav.'),
+               nepovezano: L('This team could not be linked to a Transfermarkt national team (too few known players). The original squad stays.','Ova reprezentacija nije povezana s Transfermarktom (premalo poznatih igrača). Ostaje originalni sastav.'),
+               isto: L('The latest call-up is the same as the original squad.','Zadnji poziv je isti kao originalni sastav.')}[t.status];
+  const PL = t.sastav.map(x => x.id);
+  const pc = x => `<button class="pc ${x.novi?'new':''}" data-pid="${x.id}"><span class="no">${x.broj??''}</span>${badge(x.ovr)}<span class="who"><b>${esc(x.ime)}</b><small>${esc(x.poz)} · ${esc(x.klub||L('no club','bez kluba'))}</small></span>${x.novi?`<span class="nw">${L('NEW','NOVI')}</span>`:''}</button>`;
+  const lines = [0,1,2,3].map(li => { const xs = t.sastav.filter(x => (x.linija ?? 2)===li); return xs.length ? `<div class="line"><div class="lh">${esc(LANG==='hr'?LINES[li][1]:LINES[li][0])} · ${xs.length}</div><div class="pl">${xs.map(pc).join('')}</div></div>` : ''; }).join('');
+  const avg = a => a.length ? (a.reduce((s_,v)=>s_+v,0)/a.length).toFixed(1) : '–';
+  $('#ntdet').innerHTML = `<div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:34px">${flag(t.tim)}${esc(t.tim)}</h2><div class="sub">${esc(ntStatus(t))}</div></div>
+        <button class="ghost" id="ntplayers">${L('Show these players in the list','Prikaži ove igrače u popisu')}</button></div>
+      ${why ? `<div class="note">${why}</div>` : ''}
+      <div class="ntstats"><span><b>${t.pozvanih??0}</b>${L('called up','pozvano')}</span><span><b>${t.u_bazi??0}</b>${L('in your database','u tvojoj bazi')}</span>
+        <span><b class="up">+${t.ulaze.length}</b>${L('new vs original','novih u odnosu na original')}</span><span><b class="dn">−${t.izlaze.length}</b>${L('dropped','ispalo')}</span>
+        ${t.sastav.length ? `<span><b>${avg(t.sastav.map(x=>x.ovr).filter(v=>v!=null))}</b>${L('average overall','prosječna ocjena')}</span>` : ''}</div>
+      ${t.sastav.length ? `<div class="pitch">${lines}</div>` : ''}
+    </div>
+    <div class="two">
+      <div class="panel"><h3>${L('In the squad, not in the original','Ušli u sastav (nisu bili u originalu)')} <span class="up">+${t.ulaze.length}</span></h3>
+        <ul class="plist">${t.ulaze.map(u => `<li data-pid="${u.id}"><span><b>${esc(u.ime)}</b><br><small>${esc(u.poz)} · ${esc(u.klub||'')}</small></span>${badge(u.ovr)}</li>`).join('') || `<li class="sub">${L('Nobody new.','Nema novih.')}</li>`}</ul></div>
+      <div class="panel"><h3>${L('In the original, dropped now','Bili u originalu, sada ispali')} <span class="dn">−${t.izlaze.length}</span></h3>
+        <ul class="plist">${t.izlaze.map(u => `<li data-pid="${u.id}"><span><b>${esc(u.ime)}</b><br><small>${esc(u.poz)} · ${esc(u.klub||'')}</small></span>${badge(u.ovr)}</li>`).join('') || `<li class="sub">${L('Nobody dropped.','Nitko nije ispao.')}</li>`}</ul></div>
+      <div class="panel"><h3>${L('Called up, but not in your database','Pozvani, ali nisu u tvojoj bazi')} <span class="sub">${t.nema.length}</span></h3>
+        <p class="sub small">${t.nema.length && t.status==='promijenjeno' ? L('Their places were filled from the original squad. Add them to your database to have the exact call-up.','Njihova mjesta su popunjena iz originalnog sastava. Dodaj ih u bazu za točan poziv.') : ''}</p>
+        <ul class="plist">${t.nema.map(n => `<li><span><b>${esc(n.ime)}</b><br><small>${esc(n.poz||'')}${n.god ? ' · ' + n.god + ' ' + L('yrs','god') : ''}${n.razlog==='other_team' ? ' · ' + L('in your database for another national team','u bazi za drugu reprezentaciju') : ''}</small></span>${n.tm_id ? `<a class="linkbtn small" target="_blank" rel="noopener" href="https://www.transfermarkt.com/-/profil/spieler/${n.tm_id}">Transfermarkt</a>` : ''}</li>`).join('') || `<li class="sub">${L('Everyone is in your database.','Svi su u tvojoj bazi.')}</li>`}</ul></div>
+    </div>`;
+  $('#ntdet').onclick = e => { const b = e.target.closest('[data-pid]'); if(b){ const ids = [...t.sastav.map(x=>x.id), ...t.izlaze.map(x=>x.id)]; openPlayer(+b.dataset.pid, ids); } };
+  $('#ntplayers').onclick = () => { $('#freset').click(); $('#frepr').value = t.tim; F.page = 1; load(); view('browse'); };
+}
+$('#ntlist').addEventListener('click', e => { const b = e.target.closest('[data-nt]'); if(!b) return; NTSEL = b.dataset.nt; renderNT(); if(innerWidth < 1000) $('#ntdet').scrollIntoView({behavior:'smooth'}); });
+$('#ntq').addEventListener('input', renderNT);
+$$('input[name=ntf]').forEach(r => r.addEventListener('change', renderNT));
+
+/* ---------------- leagues & clubs ---------------- */
+let LCD = null;
+async function loadLC(){ if(!LCD){ $('#lclige').innerHTML = '<tr><td colspan="5" class="empty">…</td></tr>'; try{ LCD = await api('/api/v2/statistika'); }catch(e){ return; } } renderLC(); }
+const dcell = (a, b) => { const d = Math.round((b - a) * 10) / 10, w = Math.min(50, Math.abs(d) * 8);
+  return `<span class="dlt ${d>0?'up':d<0?'dn':'sub'}">${d>0?'+':''}${d.toFixed(1)}</span><span class="mini"><i class="${d>=0?'u':'d'}" style="width:${w}%"></i></span>`; };
+function renderLC(){
+  if(!LCD) return;
+  $('#lclige').innerHTML = LCD.lige.map(r => `<tr><td>${flag(leagueCountry(r.liga))}${esc(lname(r.liga))}</td><td class="n">${N(r.igraca)}</td><td class="n">${r.prije}</td>
+      <td class="n"><b>${r.poslije}</b> ${dcell(r.prije, r.poslije)}</td>
+      <td class="small"><span class="who up" data-pid="${r.skok.id}">${r.skok.d>0?'+'+r.skok.d+' ':''}${esc(r.skok.ime)}</span><br><span class="who dn" data-pid="${r.pad.id}">${r.pad.d<0?r.pad.d+' ':''}${esc(r.pad.ime)}</span></td></tr>`).join('');
+  const q = $('#lcq').value.trim().toLowerCase(), m = document.querySelector('input[name=lcs]:checked').value;
+  let K = LCD.klubovi.filter(r => !q || r.klub.toLowerCase().includes(q) || r.liga.toLowerCase().includes(q));
+  if(m==='gore') K = [...K].sort((a,b) => b.razlika - a.razlika); if(m==='dolje') K = [...K].sort((a,b) => a.razlika - b.razlika);
+  $('#lcklub').innerHTML = K.slice(0,150).map(r => `<tr><td><span class="who" data-klub="${r.id}" data-kn="${esc(r.klub)}">${flag(leagueCountry(r.liga))}<b>${esc(r.klub)}</b></span><br><small class="sub">${esc(lname(r.liga))} · ${L('best','najbolji')}: ${esc(r.najbolji.ime)} ${r.najbolji.ovr}</small></td>
+      <td class="n">${r.prije}</td><td class="n"><b>${r.poslije}</b></td><td class="n">${dcell(r.prije, r.poslije)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty">${L('No clubs match.','Nijedan klub ne odgovara.')}</td></tr>`;
+}
+$('#v-lc').addEventListener('click', e => { const p_ = e.target.closest('[data-pid]'); if(p_){ openPlayer(+p_.dataset.pid, [+p_.dataset.pid]); return; }
+  const k = e.target.closest('[data-klub]'); if(k){ $('#freset').click(); F.klub = [{id:+k.dataset.klub, n:k.dataset.kn}]; chips(); F.page = 1; load(); view('browse'); } });
+$('#lcq').addEventListener('input', renderLC); $$('input[name=lcs]').forEach(r => r.addEventListener('change', renderLC));
+
+/* ---------------- review doubtful matches ---------------- */
+let RVD = null;
+async function loadReview(){ $('#rvlist').innerHTML = '<p class="sub">…</p>'; try{ RVD = await api('/api/v2/provjera'); }catch(e){ $('#rvlist').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; } renderReview(); }
+function renderReview(){
+  if(!RVD) return;
+  $('#rvcount').textContent = L(`${N(RVD.length)} to check`, `${N(RVD.length)} za provjeru`);
+  $('#rvlist').innerHTML = RVD.map(r => `<div class="rvc" data-id="${r.id}">
+      <div class="side"><b>${flag(r.drz || r.db_drzava)}${esc(r.db_ime)}</b><small>${L('Your database','Tvoja baza')}: ${esc(r.klub_baza || L('no club','bez kluba'))} · ${esc(r.poz||'')} · ${r.db_godine ?? '–'} ${L('yrs','god')}</small></div>
+      <div class="vs">${badge(r.db_ovr)}<span class="arrow">→</span>${badge(r.cilj)}</div>
+      <div class="side"><b>${esc(r.tm_ime || '–')}</b><small>Transfermarkt: ${esc(r.klub || '–')} · ${r.godine ?? '–'} ${L('yrs','god')} · ${money(r.vrijednost)} €</small>
+        ${r.tm_id ? ` <a class="linkbtn small" target="_blank" rel="noopener" href="https://www.transfermarkt.com/-/profil/spieler/${r.tm_id}">${L('Open on Transfermarkt','Otvori na Transfermarktu')}</a>` : ''}</div>
+      <div class="acts"><button class="ghost" data-act="open">${L('Details','Detalji')}</button><button class="btn" data-act="odobri">${L('Same player','Isti igrač')}</button><button class="ghost" data-act="odbaci">${L('Not him','Nije on')}</button></div></div>`).join('')
+    || `<div class="panel empty">${L('Nothing left to check.','Nema više ništa za provjeru.')}</div>`;
+}
+$('#rvlist').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b) return; const c = b.closest('[data-id]'), id = +c.dataset.id;
+  if(b.dataset.act==='open'){ openPlayer(id, RVD.map(r => r.id)); return; }
+  try{ const r = await api('/api/v2/provjera', {id, akcija: b.dataset.act}); c.classList.add('gone'); RVD = RVD.filter(x => x.id !== id);
+    setTimeout(() => renderReview(), 300); toast(b.dataset.act==='odobri' ? L('Approved: used in the next update','Odobreno: koristi se u sljedećem ažuriranju') : L('Rejected: the player is locked','Odbačeno: igrač je zaključan')); }
+  catch(err){ toast(err.message); }
+});
+
+
+/* ---------------- new update ---------------- */
+let SCOPE_FILTER = null, SCOPE_KLUB = [], SCOPE_REPR = [];
+const OPS = [
+ {g:'Ratings', gh:'Ocjene', items:[
+  {k:'ratings', on:true, n:'Ratings from Transfermarkt', nh:'Ocjene s Transfermarkta', d:'Overall from market value, age, position, club and league, learned on EA SPORTS FC ratings. Attributes are scaled so the in-game overall matches exactly. Classic and legend teams are never changed.', dh:'Overall iz tržišne vrijednosti, godina, pozicije, kluba i lige, naučen na EA SPORTS FC ocjenama. Atributi se skaliraju da overall u igri bude točno taj. Classic timovi i legende se nikad ne mijenjaju.'},
+  {k:'ea_profile', on:true, n:'Realistic attribute shape from EA FC', nh:'Realni atributi iz EA FC', d:'Players found in EA FC get its strengths and weaknesses (pace, jumping, heading, defending…): 70 % EA, 30 % your database.', dh:'Igrači iz EA FC dobiju njegove jače i slabije strane (brzina, skok, glava, obrana…): 70 % EA, 30 % tvoja baza.'},
+  {k:'ea_extra', on:true, n:'Foot, weak foot, positions and skills from EA FC', nh:'Noga, slabija noga, pozicije i vještine iz EA FC', d:'Fixes the stronger foot and clear weak-foot mistakes, adds secondary positions and skills from EA PlayStyles. Existing skills stay.', dh:'Ispravlja jaču nogu i očite greške slabije noge, dodaje sporedne pozicije i vještine iz EA PlayStyles. Postojeće vještine ostaju.'},
+  {k:'reputation', on:true, n:'Reputation follows the new rating', nh:'Reputacija prati novu ocjenu', d:'Moves reputation as much as the new overall moves the expected reputation in your own database.', dh:'Pomiče reputaciju koliko nova ocjena pomiče očekivanu reputaciju u tvojoj bazi.'}]},
+ {g:'Player data', gh:'Podaci igrača', items:[
+  {k:'data', on:true, n:'Age, nationality and height', nh:'Godine, državljanstvo i visina', d:'From Transfermarkt. Height only when it differs by up to 8 cm; a national-team player keeps that country.', dh:'S Transfermarkta. Visina samo kad je razlika do 8 cm; reprezentativac zadržava tu državu.'},
+  {k:'injuries', on:false, n:'Injury resistance from injury history', nh:'Otpornost na ozljede iz povijesti ozljeda', d:'Average days missed over the last three seasons. Downloads each player’s injury page; saved pages are reused, so later runs are fast.', dh:'Prosjek propuštenih dana u zadnje tri sezone. Skida stranicu ozljeda za svakog igrača; spremljeno se ponovno koristi, pa su kasnija ažuriranja brza.'},
+  {k:'contracts', on:false, n:'Contracts and loans', nh:'Ugovori i posudbe', d:'Contract end, loan club and loan end, used by Master League. Only when both clubs are in the database.', dh:'Kraj ugovora, klub vlasnik i kraj posudbe, za Master League. Samo kad su oba kluba u bazi.'}]},
+ {g:'Squads', gh:'Sastavi', items:[
+  {k:'national', on:false, n:'National teams from the latest call-up', nh:'Reprezentacije prema zadnjem pozivu', d:'The last squad on Transfermarkt, up to 26 players with shirt numbers; called-up players get that country as their first nationality. Missing players are filled from the old squad.', dh:'Zadnji poziv s Transfermarkta, do 26 igrača s brojevima; pozvani igrači dobiju tu državu kao prvo državljanstvo. Igrači kojih nema u bazi dopunjuju se iz starog sastava.'},
+  {k:'search', on:false, n:'Find unrated players one by one', nh:'Pojedinačno traženje neocijenjenih igrača', d:'Free agents and players outside the leagues are searched by name, age and nationality. About 3 seconds per player, resumes where it stopped.', dh:'Slobodni igrači i igrači izvan liga traže se po imenu, godinama i državi. Oko 3 sekunde po igraču, nastavlja gdje je stao.'},
+  {k:'cleanup', on:false, n:'Remove retired players and duplicates', nh:'Ukloni umirovljene i duplikate', d:'Only players without a club or national team: retired on Transfermarkt, or a second record of the same player. Legends are kept.', dh:'Samo igrači bez kluba i reprezentacije: umirovljeni na Transfermarktu ili drugi zapis istog igrača. Legende ostaju.'}]}];
+let SKALA = 0.5;
+const opState = {}; OPS.forEach(g => g.items.forEach(o => opState[o.k] = o.on));
+const opName = k => { for(const g of OPS) for(const o of g.items) if(o.k===k) return LANG==='hr'?o.nh:o.n; return k; };
+function renderOps(){
+  $('#ops').innerHTML = OPS.map(g => `<div class="opgrp">${esc(LANG==='hr'?g.gh:g.g)}</div>` + g.items.map(o => `
+    <label class="op"><input type="checkbox" data-op="${o.k}" ${opState[o.k]?'checked':''}><b>${esc(LANG==='hr'?o.nh:o.n)}</b><span class="time" id="tm-${o.k}"></span>
+      <span class="d">${esc(LANG==='hr'?o.dh:o.d)}</span>
+      ${o.k==='ratings' ? `<div class="d"><div class="scale"><label for="skala"><b>${L('Gap for weaker players','Razlika za slabije igrače')}</b> <span id="skv"></span></label>
+        <input type="range" id="skala" min="0" max="1" step="0.05" value="${SKALA}"><div class="row" style="justify-content:space-between"><span>${L('like EA FC','kao EA FC')}</span><span>${L('like your database','kao tvoja baza')}</span></div></div></div>` : ''}
+    </label>`).join('')).join('');
+  $('#skv').textContent = Number(SKALA).toFixed(2);
+  $('#skala').addEventListener('input', e => { SKALA = +e.target.value; $('#skv').textContent = SKALA.toFixed(2); });
+  $('#skala').addEventListener('click', e => e.stopPropagation());
+}
+$('#ops').addEventListener('change', e => { const k = e.target.dataset.op; if(k){ opState[k] = e.target.checked; estimate(); } });
+const scopeTip = () => document.querySelector('input[name=scope]:checked').value;
+function syncScope(){
+  const s = scopeTip();
+  $('#sc-lige').hidden = s!=='lige'; $('#sc-klubovi').hidden = s!=='klubovi'; $('#sc-filter').hidden = s!=='filter';
+  if(s==='filter' && !SCOPE_FILTER) $('#scfiltdesc').textContent = L('Set filters on the Players page and click “Update only these players”.','Na stranici Igrači postavi filtere i klikni „Ažuriraj samo ove igrače“.');
+  estimate();
+}
+$$('input[name=scope]').forEach(r => r.addEventListener('change', syncScope));
+let SCL = new Set();
+function renderScopeLeagues(){
+  const q = $('#scligeq').value.trim().toLowerCase();
+  const Ls = (OPC ? OPC.lige : []).filter(l => !q || l.n.toLowerCase().includes(q) || l.k.toLowerCase().includes(q));
+  $('#scligel').innerHTML = Ls.map(l => `<li><label><input type="checkbox" data-scl="${esc(l.k)}" ${SCL.has(l.k)?'checked':''}><span>${flag(leagueCountry(l.n))}${esc(lname(l.n))}</span><span class="c">${N(l.c)}</span></label></li>`).join('');
+}
+$('#scligeq').addEventListener('input', renderScopeLeagues);
+$('#scligel').addEventListener('change', e => { const k = e.target.dataset.scl; if(!k) return; e.target.checked ? SCL.add(k) : SCL.delete(k); estimate(); });
+$('#scklubq').addEventListener('change', e => { const o = [...$('#klubdl2').options].find(o => o.value===e.target.value); if(o && !SCOPE_KLUB.some(c=>c.id==o.dataset.id)) SCOPE_KLUB.push({id:+o.dataset.id, n:o.value}); e.target.value=''; scopeChips(); });
+$('#screpr').addEventListener('change', e => { const v = e.target.value; if(v && !SCOPE_REPR.includes(v)) SCOPE_REPR.push(v); e.target.value=''; scopeChips(); });
+function scopeChips(){
+  $('#scklubc').innerHTML = SCOPE_KLUB.map(c => `<span class="chip">${esc(c.n.split(' · ')[0])}<button type="button" data-sck="${c.id}" aria-label="Remove">×</button></span>`).join('')
+    + SCOPE_REPR.map(r => `<span class="chip">${esc(r)}<button type="button" data-scr="${esc(r)}" aria-label="Remove">×</button></span>`).join('');
+  estimate();
+}
+$('#scklubc').addEventListener('click', e => { const k = e.target.dataset.sck, r = e.target.dataset.scr;
+  if(k) SCOPE_KLUB = SCOPE_KLUB.filter(c => String(c.id)!==k); if(r) SCOPE_REPR = SCOPE_REPR.filter(x => x!==r); scopeChips(); });
+function scopeBody(){
+  const s = scopeTip();
+  if(s==='lige') return {tip:'lige', lige:[...SCL]};
+  if(s==='klubovi') return {tip:'klubovi', klubovi:SCOPE_KLUB.map(c=>c.id), repr:SCOPE_REPR};
+  if(s==='filter') return {tip:'filter', filter:SCOPE_FILTER||{}};
+  return {tip:'sve'};
+}
+const opts = () => Object.keys(opState).filter(k => opState[k]);
+function whyNot(){
+  const s = scopeTip();
+  if(JOB.radi) return L('Another job is running.','Već radi drugi posao.');
+  if(!opts().length) return L('Tick at least one change in step 2.','U koraku 2 označi barem jednu promjenu.');
+  if(s==='lige' && !SCL.size) return L('Choose at least one league in step 1.','U koraku 1 odaberi barem jednu ligu.');
+  if(s==='klubovi' && !SCOPE_KLUB.length && !SCOPE_REPR.length) return L('Add a club or national team in step 1.','U koraku 1 dodaj klub ili reprezentaciju.');
+  if(s==='filter' && !SCOPE_FILTER) return L('Set a filter on the Players page first.','Prvo postavi filter na stranici Igrači.');
+  if(!$('#outpath').value.trim() && PR && PR.tip!=='csv') return L('Choose where to save in step 3.','U koraku 3 odaberi kamo spremiti.');
+  return '';
+}
+let estT = null;
+function estimate(){ clearTimeout(estT); estT = setTimeout(async () => {
+  const w = whyNot(); $('#why').textContent = w; $('#runjob').disabled = !!w;
+  ['search','injuries'].forEach(k => { const el = $('#tm-'+k); if(el){ el.textContent = opState[k] ? L('slow','sporo') : ''; el.classList.toggle('slow', !!opState[k]); } });
+  $('#redrow').hidden = $('#ugrow').hidden || !$('#ugame').checked || !(PR && PR.igra && PR.igra.edit && PR.igra.edit.save);
+  if(!PR || !PR.katalog) return;
+  try{
+    const e = await api('/api/v2/procjena', {opseg: scopeBody(), opcije: opts()});
+    $('#est').textContent = '~' + fmin(e.minute);
+    $('#stepest').innerHTML = e.koraci.filter(k => k.min >= 0.1).map(k => `<li class="${k.min >= 20 ? 'big' : ''}"><span>${esc(stepName(k.n))}</span><span>${fmin(k.min)}</span></li>`).join('');
+    $('#esttip').textContent = e.hladno && e.minute > 30 ? L('The first run downloads everything from Transfermarkt; later runs reuse what was saved and are much faster.','Prvi put se sve skida s Transfermarkta; kasnije se koristi spremljeno, pa je puno brže.')
+      : (e.minute > 60 ? L('Most of the time goes to downloading from Transfermarkt. You can stop and continue later.','Najviše vremena odlazi na skidanje s Transfermarkta. Možeš zaustaviti i nastaviti kasnije.') : '');
+    const s = scopeTip(), who = s==='sve' ? L('the whole database','cijelu bazu') : s==='lige' ? L(`${SCL.size} league(s)`,`${SCL.size} lig${SCL.size===1?'u':'e'}`) : s==='klubovi' ? L(`${SCOPE_KLUB.length + SCOPE_REPR.length} team(s)`,`${SCOPE_KLUB.length + SCOPE_REPR.length} tim(a)`) : L('the filtered players','filtrirane igrače');
+    const ch = opts().map(opName);
+    const out = String($('#outpath').value).split(/[\\/]/).slice(-1)[0];
+    const game = $('#ugame').checked && !$('#ugrow').hidden ? L(', then copied into the game', ', zatim kopirano u igru') + ($('#redit').checked && !$('#redrow').hidden ? L(' with a fresh edit file',' s novim edit fileom') : '') : '';
+    $('#sentence').innerHTML = ch.length ? L(`Update <b>${N(e.igraca)} players</b> (${who}) with <b>${ch.length} change${ch.length===1?'':'s'}</b>, saved as <b>${esc(out)}</b>${game}.`,
+                                             `Ažuriraj <b>${N(e.igraca)} igrača</b> (${who}) s <b>${ch.length} promjen${ch.length===1?'om':'a'}</b>, spremi kao <b>${esc(out)}</b>${game}.`) : L('Nothing selected yet.','Još ništa nije odabrano.');
+  }catch(err){ $('#est').textContent = '–'; }
+}, 200); }
+['#outpath'].forEach(id => $(id).addEventListener('input', estimate));
+$('#ugame').addEventListener('change', estimate); $('#redit').addEventListener('change', estimate);
+$$('input[name=od]').forEach(r => r.addEventListener('change', estimate));
+$('#outpick').addEventListener('click', async () => { try{ const j = await api('/api/odaberi', {vrsta:'folder'}); if(j.put){ $('#outpath').value = j.put; estimate(); } }catch(e){ msg('#jobmsg', e.message, 'err'); } });
+$('#runjob').addEventListener('click', async () => {
+  const body = {opseg: scopeBody(), opcije: opts(), od: document.querySelector('input[name=od]:checked').value, izlaz: $('#outpath').value.trim(),
+                u_igru: $('#ugame').checked && !$('#ugrow').hidden, reset_edit: $('#redit').checked && !$('#redrow').hidden, skala: SKALA};
+  try{ await api('/api/v2/posao', body); msg('#jobmsg', L('Started. Follow the progress at the bottom.','Pokrenuto. Napredak je dolje.'), 'ok'); toast(L('Update started','Ažuriranje pokrenuto')); poll(); }
+  catch(e){ msg('#jobmsg', e.message, 'err'); }
+});
+
+/* ---------------- history ---------------- */
+async function loadHistory(){
+  let H; try{ H = await api('/api/v2/povijest'); }catch(e){ return; }
+  HIST = H; renderRoute();
+  if(CUR!=='history') return;
+  const stt = s => s==='done' ? `<span class="tag good">${L('done','gotovo')}</span>` : s==='failed' ? `<span class="tag bad">${L('stopped or failed','prekinuto')}</span>` : `<span class="tag warn">${L('running','u tijeku')}</span>`;
+  $('#hist').innerHTML = H.length ? H.map((h,i) => { const t = h.trajanja ? Object.values(h.trajanja).reduce((a,b)=>a+b,0) : null;
+      return `<li class="${esc(h.status)}"><div class="when">${when(h.vrijeme)} ${stt(h.status)}</div>
+      <div class="card"><div><div><b>${esc(h.opseg_opis)}</b></div><div class="sub small">${h.opcije.map(opName).map(esc).join(' · ')}</div>
+      <div class="sub small">${L('Saved to ','Spremljeno u ')}${esc(h.izlaz)}${h.od==='izlaz' ? L(' (built on the last new database)',' (nadograđeno na zadnju novu bazu)') : ''}${h.u_igru ? L(' · copied into game',' · kopirano u igru') : ''}</div>
+      <div class="sub small">${t ? L('Took ','Trajalo ') + dur(t) : ''}${h.procjena_min ? (t ? ' · ' : '') + L('estimated ','procjena ') + fmin(h.procjena_min) : ''}</div>
+      <div class="steprow">${(h.koraci||[]).map(k => `<span>${esc(stepName(k))}${h.trajanja && h.trajanja[k]!=null ? ' · ' + dur(h.trajanja[k]) : ''}</span>`).join('')}</div></div>
+      <div class="acts"><button class="ghost" data-again="${i}">${L('Run again','Ponovi')}</button></div></div></li>`; }).join('')
+    : `<li class="empty" style="display:block">${L('No updates yet. Start one on New update.','Još nema ažuriranja. Pokreni prvo na stranici Novo ažuriranje.')}</li>`;
+  $('#hist').onclick = e => {
+    const a = e.target.dataset.again; if(a===undefined) return; const h = H[+a];
+    Object.keys(opState).forEach(k => opState[k] = h.opcije.includes(k)); if(h.skala!=null) SKALA = h.skala; renderOps();
+    const sc = h.opseg || {tip:'sve'}; document.querySelector(`input[name=scope][value="${sc.tip}"]`).checked = true;
+    if(sc.tip==='lige') SCL = new Set(sc.lige||[]);
+    if(sc.tip==='klubovi'){ SCOPE_KLUB = (sc.klubovi||[]).map(id => { const c = OPC.klubovi.find(x=>x.id===id); return {id, n: c ? c.n : String(id)}; }); SCOPE_REPR = sc.repr||[]; scopeChips(); }
+    if(sc.tip==='filter') SCOPE_FILTER = sc.filter;
+    renderScopeLeagues(); syncScope(); $('#outpath').value = h.izlaz; view('job');
+  };
+}
+
+/* ---------------- settings ---------------- */
+$$('input[name=lang]').forEach(r => r.addEventListener('change', () => setLang(r.value)));
+const pickTo = (vrsta, target, m) => async () => { try{ const j = await api('/api/odaberi', {vrsta}); if(j.put) $(target).value = j.put; }catch(e){ msg(m, e.message, 'err'); } };
+$('#gamepick').addEventListener('click', pickTo('folder', '#gamepath', '#setmsg'));
+$('#igradirb').addEventListener('click', pickTo('folder', '#igradir', '#setmsg'));
+$('#siderinib').addEventListener('click', pickTo('ini', '#siderini', '#setmsg'));
+$('#savepick').addEventListener('click', pickTo('folder', '#savepath', '#editmsg'));
+$('#savegame').addEventListener('click', async () => {
+  try{ await api('/api/v2/postavke', {igra_cilj: $('#gamepath').value.trim()});
+       const b = {}; if($('#igradir').value.trim()) b.igra_dir = $('#igradir').value.trim(); if($('#siderini').value.trim()) b.sider_ini = $('#siderini').value.trim();
+       if(Object.keys(b).length) await api('/api/v2/postavke', b);
+       msg('#setmsg', L('Saved.','Spremljeno.'), 'ok'); loadProject(); }catch(e){ msg('#setmsg', e.message, 'err'); } });
+$('#seteditreset').addEventListener('change', async e => { try{ await api('/api/v2/postavke', {edit_reset: e.target.checked}); msg('#editmsg', L('Saved.','Spremljeno.'), 'ok'); loadProject(); }catch(err){ msg('#editmsg', err.message, 'err'); } });
+$('#savesave').addEventListener('click', async () => { try{ await api('/api/v2/postavke', {save_dir: $('#savepath').value.trim()}); msg('#editmsg', L('Saved.','Spremljeno.'), 'ok'); loadProject(); }catch(e){ msg('#editmsg', e.message, 'err'); } });
+async function loadData(){
+  let d; try{ d = await api('/api/v2/podaci'); }catch(e){ return; }
+  const m = d.model;
+  $('#datainfo').innerHTML = (d.ea_datum ? L(`EA ratings: ${d.ea_datum} (${d.ea_dana} days old)`,`EA ocjene: ${d.ea_datum} (stare ${d.ea_dana} d)`) : L('EA ratings are not downloaded yet.','EA ocjene još nisu skinute.'))
+    + (m ? `<br>${L('Formula','Formula')}: ${esc(m.datum)} · ${N(m.n)} ${L('players','igrača')} · ${L('average error','prosječna greška')} ${m.greska} · ${L('within ±3','unutar ±3')}: ${m.unutar3} %` : '');
+  $('#updatasub').textContent = L('about ','oko ') + d.procjena_min + ' min' + (d.tm_lige_stare ? L(` (${d.tm_lige_stare} leagues to refresh)`,` (${d.tm_lige_stare} liga za osvježiti)`) : '');
+  $('#setdot').hidden = !d.star && !(PR && !PR.igra.cilj && PR.tip!=='csv');
+  $('#stale').hidden = !d.star;
+  $('#stale-h').textContent = L('The ratings data is getting old','Podaci o ocjenama zastarijevaju');
+  $('#stale-s').textContent = (d.ea_datum ? L(`EA ratings are ${d.ea_dana} days old`, `EA ocjene su stare ${d.ea_dana} dana`) : L('EA ratings are not downloaded yet','EA ocjene još nisu skinute'))
+    + (d.tm_lige_stare ? L(`, ${d.tm_lige_stare} leagues need fresh Transfermarkt data`, `, ${d.tm_lige_stare} liga treba svježe podatke s Transfermarkta`) : '') + L(`. Updating takes about ${d.procjena_min} min.`, `. Osvježavanje traje oko ${d.procjena_min} min.`);
+}
+$('#updata').addEventListener('click', async () => {
+  if(!confirm(L('Update the ratings data? This takes a while and you can stop it and continue later.','Osvježiti podatke o ocjenama? Traje dulje, a možeš ga zaustaviti i nastaviti kasnije.'))) return;
+  try{ await api('/api/v2/osvjezi_podatke', {}); msg('#datamsg', L('Started. Progress is shown at the bottom.','Pokrenuto. Napredak je dolje.'), 'ok'); poll(); }
+  catch(e){ msg('#datamsg', e.message, 'err'); }
+});
+async function loadVersion(check){
+  let v; try{ v = await api('/api/v2/verzija' + (check ? '?provjeri=1' : '')); }catch(e){ return; }
+  $('#verline').textContent = L('Version ','Verzija ') + v.verzija; $('#vtag').textContent = 'v' + v.verzija;
+  if(!check) return;
+  if(v.url_nije_postavljen) msg('#vermsg', L('No update address is set (advanced).','Adresa za provjeru nije postavljena (napredno).'), 'err');
+  else if(v.greska) msg('#vermsg', v.greska, 'err');
+  else if(v.nova) $('#vermsg').innerHTML = L('New version ','Nova verzija ') + esc(v.zadnja) + (v.url ? ` · <a class="linkbtn" href="${esc(v.url)}" target="_blank" rel="noopener">${L('download','preuzmi')}</a>` : '') + (v.biljeske ? ` · ${esc(v.biljeske)}` : '');
+  else msg('#vermsg', L('You have the latest version.','Imaš zadnju verziju.'), 'ok');
+}
+$('#chkver').addEventListener('click', () => { msg('#vermsg', '…'); loadVersion(true); });
+$('#saveupd').addEventListener('click', async () => { try{ await api('/api/v2/postavke', {update_url: $('#updurl').value.trim()}); msg('#vermsg', L('Saved.','Spremljeno.'), 'ok'); }catch(e){ msg('#vermsg', e.message, 'err'); } });
+$('#rekat').addEventListener('click', async () => { try{ await api('/api/v2/katalog', {}); poll(); }catch(e){ toast(e.message); } });
+
+/* ---------------- database dialog ---------------- */
+async function openDb(){
+  const c = await api('/api/baza');
+  $$('input[name=btip]').forEach(r => r.checked = r.value === c.tip);
+  $('#bput').value = c.put || ''; $('#bcsv').value = c.csv || ''; msg('#dbmsg',''); syncDb(); $('#dbdlg').showModal();
+}
+function syncDb(){ const t_ = (document.querySelector('input[name=btip]:checked')||{}).value; $('#bputrow').hidden = !(t_==='mapa'||t_==='cpk'); }
+$$('input[name=btip]').forEach(r => r.addEventListener('change', syncDb));
+$('#chgdb').addEventListener('click', openDb);
+$('#bputb').addEventListener('click', () => pickTo((document.querySelector('input[name=btip]:checked')||{}).value === 'cpk' ? 'cpk' : 'mapa', '#bput', '#dbmsg')());
+$('#bcsvb').addEventListener('click', pickTo('csv', '#bcsv', '#dbmsg'));
+$('#dbok').addEventListener('click', async e => {
+  e.preventDefault();
+  const tp = (document.querySelector('input[name=btip]:checked')||{}).value || 'igra';
+  msg('#dbmsg', L('Checking…','Provjeravam…'));
+  try{ await api('/api/baza', {tip: tp, put: $('#bput').value, csv: $('#bcsv').value}); $('#dbdlg').close(); OPC = null; PR = null;
+       $('#tbody').innerHTML = `<tr><td colspan="8" class="empty">${L('Reading the database…','Čitam bazu…')}</td></tr>`; setTimeout(loadProject, 1500); poll(); }
+  catch(err){ msg('#dbmsg', err.message, 'err'); }
+});
+
+/* ---------------- job dock ---------------- */
+let polling = false, wasRunning = false, dockClosed = false;
+$('#logbtn').addEventListener('click', () => { const l = $('#log'); l.hidden = !l.hidden; $('#logbtn').setAttribute('aria-expanded', !l.hidden); poll(true); });
+$('#stopbtn').addEventListener('click', () => api('/api/stop', {}));
+$('#dockx').addEventListener('click', () => { dockClosed = true; $('#dock').hidden = true; });
+$('#nextbtn').addEventListener('click', () => { const a = $('#nextbtn').dataset.act; if(a==='copy') openCopy(); else if(a==='home') view('home'); });
+async function poll(once){
+  if(polling && !once) return; polling = true;
+  try{
+    const j = await api('/api/status');
+    const r = j.rezultat || {}, ko = r.korak, pr = r.napredak;
+    JOB = {radi: !!j.radi, tip: j.tip || (j.koraci && j.koraci.length > 1 ? 'posao' : ''), det: ''};
+    if(j.radi) dockClosed = false;
+    $('#dock').hidden = !j.naziv || dockClosed;
+    $('#jobname').textContent = j.naziv;
+    $('#lamp').className = 'lamp ' + (j.radi ? 'run' : j.izlaz===0 ? 'ok' : j.izlaz!=null ? 'err' : '');
+    let det = j.radi ? L('working…','radi…') : j.izlaz===0 ? L('finished','gotovo') : j.izlaz!=null ? L('stopped – open the log to see why','prekinuto – otvori zapis rada') : '';
+    if(ko && j.radi) det = `${L('step','korak')} ${ko[0]} / ${ko[1]}: ${stepName(ko[2])}`;
+    if(pr && j.radi) det += ` · ${N(pr[0])} / ${N(pr[1])}`;
+    $('#jobdet').textContent = det; JOB.det = det;
+    const ks = j.koraci || [];
+    $('#jobsteps').innerHTML = ks.length > 1 ? ks.map((n,i) => `<span class="${(ko && i < ko[0]-1) || (!j.radi && j.izlaz===0) ? 'done' : ko && i===ko[0]-1 && j.radi ? 'now' : ''}">${esc(stepName(n))}</span>`).join('') : '';
+    const prog = $('#prog'); prog.hidden = !j.radi; prog.classList.toggle('ind', !!j.radi && !pr); if(pr) $('#prog i').style.width = (100*pr[0]/pr[1]) + '%';
+    $('#stopbtn').hidden = !j.radi; $('#dockx').hidden = !!j.radi;
+    const nb = $('#nextbtn'); nb.hidden = true;
+    if(!j.radi && j.izlaz===0 && PR){ const copied = ks.includes('Copy into game') || j.naziv==='Copy into game';
+      if(copied){ nb.hidden = false; nb.dataset.act = 'home'; nb.textContent = L('Start the game to see the changes','Pokreni igru da vidiš promjene'); }
+      else if(PR.igra && PR.igra.cilj && PR.tip!=='csv'){ nb.hidden = false; nb.dataset.act = 'copy'; nb.textContent = L('Copy into game','Kopiraj u igru'); } }
+    const l = $('#log'); if(!l.hidden){ const atB = l.scrollTop + l.clientHeight >= l.scrollHeight - 20; l.textContent = j.log.join('\n'); if(atB) l.scrollTop = l.scrollHeight; }
+    if(wasRunning && !j.radi){ PR = null; OPC = null; NTD = null; LCD = null; await loadProject(); await loadHistory(); if(CUR==='home') loadOverview();
+      toast(j.izlaz===0 ? L('Finished: ','Gotovo: ') + j.naziv : L('Stopped: ','Prekinuto: ') + j.naziv); }
+    wasRunning = j.radi; renderRoute(); estimate();
+    polling = false;
+    if(j.radi && !once) setTimeout(() => poll(), 1000);
+  }catch(e){ polling = false; if(!once) setTimeout(() => poll(), 3000); }
+}
+
+/* ---------------- start ---------------- */
+renderOps(); applyLang(); syncScope();
+(async () => { await loadProject(); await loadHistory();
+  let v = 'home'; try{ v = localStorage.getItem('su-view') || 'home'; }catch(e){}
+  if(VIEWS.includes(location.hash.slice(1))) v = location.hash.slice(1);
+  view(v, true); poll(); loadData(); loadVersion(false);
+  if(location.hash.startsWith('#igrac/')) openPlayer(+location.hash.split('/')[1]); })();
+setInterval(() => { if(!JOB.radi && document.visibilityState==='visible') api('/api/v2/projekt').then(p => { PR = p; renderRoute(); }).catch(()=>{}); }, 15000);
+
+/* heartbeat: the program closes when the window closes */
+(function(){ const ping = () => fetch('/api/v2/ping').catch(()=>{}); ping(); setInterval(ping, 4000);
+  window.addEventListener('pagehide', () => { try{ fetch('/api/v2/zatvaram', {keepalive:true}); }catch(e){} }); })();
+</script>
+</body>
+</html>

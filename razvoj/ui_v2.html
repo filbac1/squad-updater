@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ocjene FL27</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7ECF1; --panel:#FFFFFF; --ink:#13243A; --ink2:#4A5B70; --line:#CDD6E0; --soft:#F2F5F8;
+  --navy:#173A63; --navy-ink:#FFFFFF; --focus:#2F7DD1;
+  --r90:#D7263D; --r80:#EE6A2C; --r75:#C99A00; --r70:#3FA34D; --r0:#3C7FB0;
+  --ok:#2F8F46; --bad:#C2362F; --logbg:#0F1E30; --logink:#CFE0F2;
+  --cond:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow','Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101B29; --panel:#172638; --ink:#E6EDF5; --ink2:#9FB0C3; --line:#2A3D54; --soft:#1D2F45;
+    --navy:#2C5A8F; --focus:#6FB0F5; --logbg:#0B1522;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101B29; --panel:#172638; --ink:#E6EDF5; --ink2:#9FB0C3; --line:#2A3D54; --soft:#1D2F45;
+  --navy:#2C5A8F; --focus:#6FB0F5; --logbg:#0B1522;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 16px 60px}
+.sub{color:var(--ink2);font-size:15px;overflow-wrap:anywhere}
+h1{font:700 44px/1 var(--cond);margin:0}
+h2{font:600 24px/1.1 var(--cond);margin:0 0 12px}
+h3{font:600 18px/1.2 var(--cond);margin:16px 0 8px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+
+/* kartice */
+nav.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:16px;overflow-x:auto}
+nav.tabs button{border:0;background:none;padding:10px 16px 8px;font:600 20px var(--cond);color:var(--ink2);cursor:pointer;border-bottom:4px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--navy)}
+nav.tabs .cnt{font:500 14px var(--body);color:var(--ink2);margin-left:6px}
+
+/* traka statusa (na svim karticama) */
+.jobbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin-bottom:16px}
+.jobbar .grow{flex:1;min-width:0}
+.prog{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--navy);width:0;transition:width .4s}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ink2);flex-shrink:0}
+.dot.run{background:var(--r75);animation:pulse 1s infinite}.dot.ok{background:var(--ok)}.dot.err{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.dot.run{animation:none}.prog i{transition:none}}
+pre.log{background:var(--logbg);color:var(--logink);border-radius:5px;padding:10px;max-height:280px;overflow:auto;font:12.5px/1.45 Consolas,monospace;white-space:pre-wrap;margin:10px 0 0;width:100%}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}
+.side{position:sticky;top:16px;display:flex;flex-direction:column;gap:20px;min-width:0}
+@media (max-width:900px){.side{position:static}}
+.full{grid-column:1/-1}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+input[type=search],input[type=text],input[type=number]{padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--soft)}
+.toolbar input[type=search]{flex:1;min-width:160px}
+.chipbtn{border:1px solid var(--line);background:var(--soft);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:14px}
+.chipbtn:hover{border-color:var(--navy)}
+.tablewrap{max-height:62vh;overflow:auto;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font:600 15px var(--cond);text-align:left;color:var(--ink2);padding:8px 6px;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);z-index:1}
+td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.nokod td{color:var(--ink2)}
+.kod{width:76px;padding:4px 6px!important;text-transform:uppercase}
+.kod.prazno{border-style:dashed!important;border-color:var(--r80)!important}
+.saved{color:var(--ok);font-size:13px;margin-left:6px}
+
+.big{width:100%;padding:13px;border:0;border-radius:6px;background:var(--navy);color:var(--navy-ink);font:700 22px var(--cond);cursor:pointer}
+.big.inline{width:auto;padding:9px 18px;font-size:19px}
+.big:disabled{opacity:.5;cursor:not-allowed}
+.ghost{border:1px solid var(--line);background:transparent;padding:8px 12px;border-radius:5px;cursor:pointer;text-decoration:none;display:inline-block}
+.ghost:hover{border-color:var(--navy)}
+.ghost:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+label.chk{display:flex;gap:8px;align-items:flex-start;font-size:15px;margin:10px 0}
+.selinfo{font:600 20px var(--cond);margin-bottom:6px}
+.msg{font-size:14px;margin-top:8px;min-height:1.2em}.msg.err{color:var(--bad)}
+
+/* ljestvica */
+.scale{margin:12px 0 6px;padding:14px;background:var(--soft);border-radius:6px}
+.scale input[type=range]{width:100%;accent-color:var(--navy)}
+.scale .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2)}
+.ladder{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}
+.rung{text-align:center}.rung .ea{font-size:12px;color:var(--ink2)}
+
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:34px;padding:0 6px;border-radius:4px;color:#fff;font:700 22px/1 var(--cond);font-variant-numeric:tabular-nums}
+.badge.sm{min-width:34px;height:26px;font-size:18px}
+.badge.xl{min-width:96px;height:84px;font-size:62px;border-radius:8px}
+.badge.ghostb{background:transparent;color:var(--ink2);border:2px solid var(--line)}
+.t90{background:var(--r90)}.t80{background:var(--r80)}.t75{background:var(--r75)}.t70{background:var(--r70)}.t0{background:var(--r0)}
+
+/* pojedinacni igraci */
+.search{display:flex;gap:8px;flex-wrap:wrap}
+.search input{flex:1;min-width:220px;font-size:17px;padding:11px 12px}
+.hits{list-style:none;margin:10px 0 0;padding:0}
+.hits li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:4px}
+.hits li:hover,.hits li[aria-current="true"]{background:var(--soft)}
+.hits img{width:40px;height:52px;object-fit:cover;border-radius:3px;background:var(--soft)}
+.hits .meta{font-size:13.5px;color:var(--ink2)}
+.hits .val{font:600 18px var(--cond);text-align:right;white-space:nowrap}
+.card{border:1px solid var(--line);border-radius:8px;padding:18px;background:var(--panel)}
+.card .top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center}
+.card img.por{width:84px;height:108px;object-fit:cover;border-radius:6px;background:var(--soft)}
+.card .name{font:700 32px/1.05 var(--cond)}
+.card .facts{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;font-size:14.5px;color:var(--ink2)}
+.card .facts b{color:var(--ink);font-weight:600}
+.verdict{display:flex;align-items:center;gap:14px;margin:18px 0 6px;flex-wrap:wrap}
+.verdict .lbl{font-size:13px;color:var(--ink2);text-align:center;margin-top:4px}
+.verdict .arrow{font:600 34px var(--cond);color:var(--ink2)}
+.ctx{font-size:13.5px;color:var(--ink2);margin-top:6px}
+.dbpick{list-style:none;padding:0;margin:8px 0 0}
+.dbpick li{border-bottom:1px solid var(--line)}
+.dbpick label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 4px;cursor:pointer}
+.dbpick .meta{font-size:13px;color:var(--ink2)}
+.empty{padding:22px 4px;color:var(--ink2)}
+
+/* popisi */
+.plist{list-style:none;margin:0;padding:0}
+.plist li{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.plist .who small{display:block;color:var(--ink2);font-size:12.5px}
+.arrow{color:var(--ink2)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:640px){.cols{grid-template-columns:minmax(0,1fr)}}
+.delta.neg{color:var(--bad)}.delta.pos{color:var(--ok)}
+.stats{display:flex;gap:24px;flex-wrap:wrap;margin:6px 0 14px}
+.stat b{display:block;font:700 30px/1 var(--cond)}
+.stat span{font-size:13px;color:var(--ink2)}
+.files li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:center;min-width:0}
+.files .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.files .act{display:flex;gap:8px;flex-shrink:0;align-items:center}
+.link{background:none;border:0;color:var(--focus);cursor:pointer;padding:0;text-decoration:underline;font-size:inherit}
+.tag{font-size:12px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.tag.rucno{border-color:var(--navy);color:var(--navy)}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.tools{grid-template-columns:minmax(0,1fr)}}
+.tool{border:1px solid var(--line);border-radius:6px;padding:14px;background:var(--soft)}
+.tool p{font-size:14px;color:var(--ink2);margin:4px 0 10px}
+.prose{max-width:72ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ocjene FL27</h1>
+      <div class="sub" id="bazainfo">Učitavam bazu igre…</div>
+    </div>
+    <div class="sub" id="modelinfo" style="text-align:right"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Dijelovi aplikacije">
+    <button role="tab" id="t-lige" aria-controls="p-lige" aria-selected="true">Lige</button>
+    <button role="tab" id="t-igraci" aria-controls="p-igraci" aria-selected="false">Pojedinačni igrači<span class="cnt" id="cnt-rucno"></span></button>
+    <button role="tab" id="t-bez" aria-controls="p-bez" aria-selected="false">Igrači bez kluba<span class="cnt" id="cnt-bez"></span></button>
+    <button role="tab" id="t-formula" aria-controls="p-formula" aria-selected="false">Formula</button>
+  </nav>
+
+  <div class="jobbar" id="jobbar" hidden>
+    <span class="dot" id="dot"></span>
+    <div class="grow">
+      <div><b id="statustxt"></b> <span class="sub" id="statusdet"></span></div>
+      <div class="prog" id="prog" hidden><i></i></div>
+    </div>
+    <button class="ghost" id="logbtn" aria-expanded="false">Zapis rada</button>
+    <button class="ghost" id="stop" hidden>Zaustavi</button>
+    <pre class="log" id="log" hidden></pre>
+  </div>
+
+  <!-- ===================== LIGE ===================== -->
+  <section id="p-lige" role="tabpanel" aria-labelledby="t-lige">
+    <div class="grid">
+      <section class="panel">
+        <h2>Lige u bazi</h2>
+        <div class="toolbar">
+          <input type="search" id="trazi" placeholder="Traži ligu ili državu" aria-label="Traži ligu">
+          <button class="chipbtn" data-sel="sve">Označi sve</button>
+          <button class="chipbtn" data-sel="top5">Top 5</button>
+          <button class="chipbtn" data-sel="nista">Odznači</button>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th style="width:34px"></th><th>Liga</th><th class="n">Igrača</th><th>TM kod</th></tr></thead>
+            <tbody id="lige"><tr><td colspan="4" class="sub">Učitavam lige iz baze, traje oko pola minute…</td></tr></tbody>
+          </table>
+        </div>
+        <p class="sub">Za ligu bez koda upiši Transfermarkt kod (npr. <b>ALB1</b> za Albaniju). Vidi se u adresi lige na transfermarkt.com, iza <i>/wettbewerb/</i>. Sprema se čim izađeš iz polja.</p>
+      </section>
+
+      <div class="side">
+        <section class="panel">
+          <h2>Izračun</h2>
+          <div class="selinfo" id="selinfo">Nije odabrana nijedna liga</div>
+          <div class="scale">
+            <label for="skala"><b>Razlika za slabije igrače</b></label>
+            <input type="range" id="skala" min="0" max="1" step="0.05" value="0.5" aria-describedby="skalaopis">
+            <div class="ends"><span>kao EA FC</span><span id="skalaval">0,50</span><span>kao sadašnja baza</span></div>
+            <div class="ladder" id="ladder" aria-live="polite"></div>
+            <div class="sub" id="skalaopis" style="margin-top:8px;font-size:13px">EA FC ocjena → ocjena u igri. Od 82 naviše uvijek ostaje kao u EA. Vrijedi i za pojedinačne igrače.</div>
+          </div>
+          <label class="chk"><input type="checkbox" id="rucne" checked> <span>Uključi ručni popis (<span id="rucne-n">0</span> igrača)<br><span class="sub" style="font-size:13px">Igrači s popisa imaju prednost pred ligom.</span></span></label>
+          <label class="chk"><input type="checkbox" id="osvjezi"> <span>Ponovno skini Transfermarkt<br><span class="sub" style="font-size:13px">Inače koristi podatke stare do 7 dana.</span></span></label>
+          <label class="chk"><input type="checkbox" id="maxon"> <span>Ograniči promjenu na ± <input type="number" id="maxval" value="5" min="1" max="20" style="width:58px;padding:2px 6px"> bodova</span></label>
+          <button class="big" id="pokreni" disabled>Izračunaj ocjene</button>
+          <div class="msg" id="runmsg"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Datoteke</h2>
+          <ul class="plist files" id="files"></ul>
+          <div class="row" style="margin-top:10px"><button class="ghost" id="mapa">Otvori mapu izvještaja</button></div>
+          <div class="msg" id="filemsg"></div>
+        </section>
+      </div>
+
+      <section class="panel full" id="rezultati" hidden>
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">Rezultat</h2><span class="sub" id="rezfile"></span></div>
+        <div class="stats" id="rezstats"></div>
+        <div class="row" id="rezakcije" style="margin-bottom:14px"></div>
+        <div class="cols">
+          <div><h3>Po ligama</h3>
+            <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Liga</th><th class="n">Igrača</th><th class="n">Prosj. promjena</th><th class="n">Pad ≥5</th><th class="n">Rast ≥5</th></tr></thead><tbody id="rezlige"></tbody></table></div>
+          </div>
+          <div><h3>Najbolji igrači</h3><ul class="plist" id="reztop"></ul></div>
+          <div><h3>Najveći padovi</h3><ul class="plist" id="rezpad"></ul></div>
+          <div><h3>Najveći rast</h3><ul class="plist" id="rezrast"></ul></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===================== POJEDINACNI IGRACI ===================== -->
+  <section id="p-igraci" role="tabpanel" aria-labelledby="t-igraci" hidden>
+    <div class="grid">
+      <section class="panel">
+        <h2>Nađi igrača na Transfermarktu</h2>
+        <form class="search" id="tmform">
+          <input type="search" id="tmq" placeholder="Ime igrača ili link s transfermarkt.com" aria-label="Ime igrača ili Transfermarkt link" autocomplete="off">
+          <button class="big inline" type="submit">Traži</button>
+        </form>
+        <div class="msg" id="tmmsg"></div>
+        <ul class="hits" id="hits"></ul>
+        <div id="cardwrap" style="margin-top:14px"></div>
+      </section>
+
+      <div class="side">
+        <section class="panel">
+          <div class="row" style="justify-content:space-between;align-items:baseline"><h2>Ručni popis</h2><span class="sub" id="ru-sum"></span></div>
+          <p class="sub" style="margin-top:0">Ovi igrači dobivaju ocjenu s popisa i kad se računaju lige. CSV za editor napraviš na kartici Lige ili odmah ovdje, samo za popis.</p>
+          <div class="toolbar">
+            <input type="search" id="ruq" placeholder="Filtriraj popis" aria-label="Filtriraj ručni popis">
+            <select id="rusrc" aria-label="Izvor" style="padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--soft)"><option value="">Svi</option><option value="rucno">Ručno dodani</option><option value="auto">Bez kluba (auto)</option></select>
+          </div>
+          <div class="tablewrap" style="max-height:52vh"><ul class="plist" id="rulist"></ul></div>
+          <div class="row" style="margin-top:12px">
+            <button class="big inline" id="ru-run">Napravi CSV samo za popis</button>
+          </div>
+          <p class="sub" style="font-size:13.5px;margin:8px 0 0">CSV je uvijek cijela baza. U CSV-u samo za popis igrači iz liga ostaju s ocjenama iz igre, pa za sve zajedno pokreni izračun na kartici Lige, s uključenim ručnim popisom.</p>
+          <div class="msg" id="rumsg"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== BEZ KLUBA ===================== -->
+  <section id="p-bez" role="tabpanel" aria-labelledby="t-bez" hidden>
+    <div class="grid">
+      <section class="panel">
+        <h2>Igrači iz baze koji nemaju klub</h2>
+        <div class="prose">
+          <p>Slobodni igrači, igrači samo u reprezentaciji i ostaci starih momčadi ne pripadaju nijednoj ligi, pa ih izračun po ligama ne vidi. Ovdje se traže na Transfermarktu jedan po jedan (ime, godine, državljanstvo), računa im se overall istom formulom i dodaju se na ručni popis kao <span class="tag">auto</span>.</p>
+          <p class="sub">Oko 3 sekunde po igraču. Kreće od igrača s najvećom ocjenom i nastavlja gdje je stao, pa ga možeš zaustaviti kad hoćeš. Za igrače koji su i na Transfermarktu bez kluba koristi se njihov zadnji klub.</p>
+        </div>
+        <div class="stats" id="bezstats"></div>
+        <label class="chk"><input type="checkbox" id="bez-rep"> <span>Samo igrači koji su u nekoj reprezentaciji</span></label>
+        <label class="chk"><input type="checkbox" id="bez-pon"> <span>Ponovno traži i one koji prošli put nisu nađeni</span></label>
+        <label class="chk"><span>Najviše igrača u ovom pokretanju:</span> <input type="number" id="bez-lim" value="300" min="1" max="10000" style="width:90px;padding:2px 6px" aria-label="Najviše igrača"></label>
+        <button class="big" id="bez-run">Traži igrače bez kluba</button>
+        <div class="msg" id="bezmsg"></div>
+      </section>
+      <div class="side">
+        <section class="panel">
+          <h2>Pronađeni</h2>
+          <p class="sub" style="margin-top:0">Zadnji automatski dodani. Cijeli popis je na kartici Pojedinačni igrači.</p>
+          <ul class="plist" id="bezlist"></ul>
+          <div class="row" style="margin-top:12px"><button class="ghost" id="bez-clear">Makni sve automatski dodane</button></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FORMULA ===================== -->
+  <section id="p-formula" role="tabpanel" aria-labelledby="t-formula" hidden>
+    <section class="panel">
+      <h2>Održavanje formule</h2>
+      <p class="sub prose" id="formulaopis"></p>
+      <div class="tools">
+        <div class="tool"><b>Skini nove EA FC ocjene</b><p>Kad izađe nova EA FC igra ili veliko ažuriranje ocjena. Traje oko 25 minuta.</p><button class="ghost" data-task="ea27">Skini EA ocjene</button></div>
+        <div class="tool"><b>Nauči formulu ponovno</b><p>Nakon novih EA ocjena ili kad skineš puno novih liga s Transfermarkta. Traje minutu.</p><button class="ghost" data-task="model">Nauči formulu</button></div>
+        <div class="tool"><b>Izvezi bazu u CSV</b><p>Cijela trenutna baza igre u formatu PES2020 Editora, bez promjena ocjena.</p><button class="ghost" data-task="izvoz">Izvezi bazu</button></div>
+      </div>
+      <div class="msg" id="toolmsg"></div>
+    </section>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TOP5 = ['GB1','L1','ES1','IT1','FR1'];
+let LIGE = [], sel = new Set(), running = false, lastShown = null, RU = [];
+const fmt = (x, d=1) => Number(x).toLocaleString('hr-HR', {minimumFractionDigits:d, maximumFractionDigits:d});
+const mil = v => v==null ? '–' : (v >= 1e6 ? fmt(v/1e6, v>=1e7?0:2) + ' M €' : fmt(v/1e3,0) + ' tis. €');
+const tier = v => v>=90?'t90':v>=80?'t80':v>=75?'t75':v>=70?'t70':'t0';
+const badge = (v, cls='') => v==null ? '<span class="sub">–</span>' : `<span class="badge ${tier(v)} ${cls}">${v}</span>`;
+function msg(id, t, err){ const m=$(id); if(!m) return; m.textContent=t||''; m.classList.toggle('err', !!err); }
+async function api(path, body){
+  const r = await fetch(path, body===undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.greska || ('Greška ' + r.status));
+  return j;
+}
+const skala = () => +$('#skala').value;
+
+/* ---------- kartice ---------- */
+const TABS = ['lige','igraci','bez','formula'];
+function showTab(t){
+  TABS.forEach(x => { $('#t-'+x).setAttribute('aria-selected', x===t); $('#p-'+x).hidden = x!==t; });
+  try{ localStorage.setItem('ocjene-tab', t); }catch(e){}
+  if(t==='igraci' || t==='bez') loadRucne();
+}
+TABS.forEach(t => $('#t-'+t).addEventListener('click', () => showTab(t)));
+document.querySelector('nav.tabs').addEventListener('keydown', e => {
+  if(!['ArrowLeft','ArrowRight'].includes(e.key)) return;
+  const i = TABS.findIndex(t => $('#t-'+t).getAttribute('aria-selected')==='true');
+  const n = TABS[(i + (e.key==='ArrowRight'?1:-1) + TABS.length) % TABS.length]; showTab(n); $('#t-'+n).focus();
+});
+
+/* ---------- ljestvica ---------- */
+let PRAG = 82, NAGIB = 0.569;
+function toGame(ea, s){ if(ea>=PRAG) return ea; return PRAG - (PRAG-ea)*(1 - s*(1-NAGIB)); }
+function drawLadder(){
+  $('#skalaval').textContent = fmt(skala(),2);
+  $('#ladder').innerHTML = [55,60,65,70,75,85].map(ea => `<div class="rung"><div class="ea">EA ${ea}</div>${badge(Math.round(toGame(ea, skala())),'sm')}</div>`).join('');
+}
+$('#skala').addEventListener('input', () => { drawLadder(); try{localStorage.setItem('ocjene-skala', skala());}catch(e){} });
+$('#skala').addEventListener('change', () => { if(CUR) renderCard(CUR); loadRucne(); });
+
+/* ---------- lige ---------- */
+function renderLige(){
+  const q = $('#trazi').value.trim().toLowerCase();
+  const rows = LIGE.filter(l => !q || (l.naziv+' '+l.key+' '+l.tm).toLowerCase().includes(q));
+  $('#lige').innerHTML = rows.map(l => `
+    <tr class="${l.tm?'':'nokod'}">
+      <td><input type="checkbox" data-key="${esc(l.key)}" ${sel.has(l.key)?'checked':''} ${l.tm?'':'disabled'} aria-label="Odaberi ${esc(l.naziv)}"></td>
+      <td>${esc(l.naziv)}</td><td class="n">${l.n.toLocaleString('hr-HR')}</td>
+      <td><input type="text" class="kod ${l.tm?'':'prazno'}" data-kod="${esc(l.key)}" value="${esc(l.tm||'')}" placeholder="—" aria-label="TM kod za ${esc(l.naziv)}" maxlength="8"><span class="saved" data-saved="${esc(l.key)}"></span></td>
+    </tr>`).join('') || '<tr><td colspan="4" class="sub">Nema lige s tim imenom.</td></tr>';
+  updateSel();
+}
+function updateSel(){
+  const ch = LIGE.filter(l => sel.has(l.key) && l.tm), n = ch.reduce((a,l)=>a+l.n,0);
+  const all = LIGE.length && LIGE.filter(l=>l.tm).every(l=>sel.has(l.key));
+  $('#selinfo').textContent = ch.length ? (all ? `Sve lige s TM kodom: ${ch.length}, ${n.toLocaleString('hr-HR')} igrača` : `${ch.length} ${ch.length===1?'liga':'lige'}, ${n.toLocaleString('hr-HR')} igrača`) : 'Nije odabrana nijedna liga';
+  $('#pokreni').disabled = !ch.length || running;
+}
+$('#lige').addEventListener('change', e => { const k = e.target.dataset.key; if(k){ e.target.checked ? sel.add(k) : sel.delete(k); updateSel(); } });
+$('#lige').addEventListener('focusout', async e => {
+  const k = e.target.dataset.kod; if(!k) return;
+  const l = LIGE.find(x=>x.key===k), v = e.target.value.trim().toUpperCase();
+  if(v === (l.tm||'')) return;
+  try{ await api('/api/kod', {key:k, tm:v}); l.tm = v; if(!v) sel.delete(k); renderLige();
+       const s = document.querySelector(`[data-saved="${CSS.escape(k)}"]`); if(s) s.textContent = v ? 'spremljeno' : 'obrisano';
+  }catch(err){ msg('#runmsg', err.message, true); }
+});
+$('#trazi').addEventListener('input', renderLige);
+document.querySelectorAll('[data-sel]').forEach(b => b.addEventListener('click', () => {
+  const m = b.dataset.sel;
+  if(m==='sve') LIGE.forEach(l => l.tm && sel.add(l.key));
+  if(m==='nista') sel.clear();
+  if(m==='top5'){ sel.clear(); LIGE.forEach(l => TOP5.includes(l.tm) && sel.add(l.key)); }
+  renderLige();
+}));
+async function loadLige(){
+  let j; try{ j = await api('/api/lige'); }catch(e){ setTimeout(loadLige, 2000); return; }
+  if(j.greska){ $('#bazainfo').textContent = 'Baza se ne može učitati: ' + j.greska; return; }
+  if(!j.lige){ setTimeout(loadLige, 1500); return; }
+  LIGE = j.lige;
+  $('#bazainfo').textContent = `${j.ukupno.toLocaleString('hr-HR')} igrača u bazi, od toga ${j.bez_kluba.toLocaleString('hr-HR')} bez kluba. Izvor: ${j.baza}`;
+  $('#cnt-bez').textContent = j.bez_kluba.toLocaleString('hr-HR');
+  renderLige(); loadRucne();
+}
+$('#pokreni').addEventListener('click', async () => {
+  const withCode = LIGE.filter(l => l.tm), ch = withCode.filter(l => sel.has(l.key));
+  const body = {sve: ch.length === withCode.length, kodovi: ch.map(l=>l.tm), skala: skala(), osvjezi: $('#osvjezi').checked,
+                bez_rucnih: !$('#rucne').checked, maxpromjena: $('#maxon').checked ? +$('#maxval').value : 0};
+  try{ await api('/api/pokreni', body); msg('#runmsg', 'Pokrenuto. Za lige koje još nisu skinute prvi put traje dulje.'); poll(); }
+  catch(err){ msg('#runmsg', err.message, true); }
+});
+
+/* ---------- pojedinacni igraci ---------- */
+let HITS = [], CUR = null;
+$('#tmform').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#tmq').value.trim(); if(!q) return;
+  msg('#tmmsg', 'Tražim na Transfermarktu…'); $('#hits').innerHTML = ''; $('#cardwrap').innerHTML = ''; CUR = null;
+  try{
+    HITS = await api('/api/tm_trazi?q=' + encodeURIComponent(q));
+    if(!HITS.length){ msg('#tmmsg', 'Transfermarkt nema igrača s tim imenom. Probaj samo prezime ili zalijepi link s profila.'); return; }
+    msg('#tmmsg', HITS.length === 1 ? '' : `${HITS.length} igrača. Odaberi pravog.`);
+    $('#hits').innerHTML = HITS.map((h,i) => `<li tabindex="0" data-hit="${i}">
+      <img src="${esc(h.slika||'')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div><b>${esc(h.name)}</b><div class="meta">${esc(h.club||'bez kluba')} · ${esc(h.pos_kratko||h.pos)} · ${h.age??'?'} g.${(h.nat||[]).length?' · '+esc(h.nat.join(', ')):''}</div></div>
+      <div class="val">${mil(h.value)}</div></li>`).join('');
+    const norm = x => x.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+    const exact = HITS.filter(h => norm(h.name) === norm(q));
+    if(HITS.length === 1) pick(0); else if(exact.length === 1) pick(HITS.indexOf(exact[0]));
+  }catch(err){ msg('#tmmsg', err.message, true); }
+});
+$('#hits').addEventListener('click', e => { const li = e.target.closest('[data-hit]'); if(li) pick(+li.dataset.hit); });
+$('#hits').addEventListener('keydown', e => { if(e.key==='Enter'){ const li = e.target.closest('[data-hit]'); if(li) pick(+li.dataset.hit); } });
+async function pick(i){
+  document.querySelectorAll('#hits li').forEach(li => li.setAttribute('aria-current', li.dataset.hit==i));
+  $('#cardwrap').innerHTML = '<div class="empty">Računam: momčad kluba i jačina lige s Transfermarkta…</div>';
+  try{ CUR = await api('/api/tm_izracun', {igrac: HITS[i], skala: skala()}); renderCard(CUR); }
+  catch(err){ $('#cardwrap').innerHTML = `<div class="empty msg err">${esc(err.message)}</div>`; }
+}
+function renderCard(r){
+  if(r.greska){ $('#cardwrap').innerHTML = `<div class="card"><div class="name">${esc(r.name)}</div><p class="msg err">${esc(r.greska)}</p></div>`; return; }
+  const cilj = Math.max(40, Math.min(99, Math.round(toGame(r.ea_pred, skala()))));
+  const db = r.db || [], inList = id => RU.some(x => x.db_id === id);
+  $('#cardwrap').innerHTML = `<div class="card">
+    <div class="top">
+      <img class="por" src="${esc(r.slika||'')}" alt="" onerror="this.style.visibility='hidden'">
+      <div><div class="name">${esc(r.name)}</div>
+        <div class="facts"><span><b>${esc(r.club||'bez kluba')}</b></span><span>${esc(r.pos)}</span><span><b>${r.age}</b> g.</span><span>vrijednost <b>${mil(r.value)}</b></span>${r.liga_kod?`<span>liga <b>${esc(r.liga_kod)}</b></span>`:''}</div>
+      </div>
+    </div>
+    <div class="verdict">
+      <div>${db[0] ? badge(db[0].ovr,'xl') : '<span class="badge xl ghostb">?</span>'}<div class="lbl">u bazi sada</div></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div>${badge(cilj,'xl')}<div class="lbl">po Transfermarktu</div></div>
+      <div class="sub" style="margin-left:6px">na EA ljestvici ${fmt(r.ea_pred)}${r.ea_ovr?`, prava EA FC ocjena ${r.ea_ovr}`:''}<br>jačina kluba ${fmt(r.jacina_kluba,2)}, lige ${fmt(r.jacina_lige,2)}</div>
+    </div>
+    <div class="ctx">${esc(r.kontekst)}</div>
+    <h3>Igrač u FL27 bazi</h3>
+    ${db.length ? `<ul class="dbpick">${db.map((p,i) => `<li><label><input type="radio" name="dbp" value="${p.id}" ${i===0?'checked':''}>
+        <span><b>${esc(p.ime)}</b><span class="meta" style="display:block">${esc(p.klub)} · ${esc(p.poz)} · ${p.dob} g. · ${esc(p.nat)} · ID ${p.id}${inList(p.id)?' · već na popisu':''}</span></span>${badge(p.ovr,'sm')}</label></li>`).join('')}</ul>`
+      : '<p class="sub">Nije nađen po imenu i godinama. Potraži ga u bazi pod drugim imenom:</p>'}
+    <div class="row" style="margin-top:8px"><input type="search" id="dbq" placeholder="Traži u bazi (npr. prezime)" aria-label="Traži igrača u bazi" style="flex:1;min-width:180px"><button class="ghost" id="dbqb">Traži u bazi</button></div>
+    <div class="row" style="margin-top:14px"><button class="big inline" id="addbtn" ${db.length?'':'disabled'}>Dodaj na ručni popis</button><span class="msg" id="addmsg" style="margin:0"></span></div>
+  </div>`;
+  $('#dbqb').addEventListener('click', dbSearch);
+  $('#dbq').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); dbSearch(); } });
+  $('#addbtn').addEventListener('click', addCur);
+}
+async function dbSearch(){
+  const q = $('#dbq').value.trim(); if(!q) return;
+  try{ const res = await api('/api/db_trazi?q=' + encodeURIComponent(q)); CUR.db = res; renderCard(CUR);
+       if(!res.length) msg('#addmsg', 'U bazi nema igrača s tim imenom.', true); }
+  catch(err){ msg('#addmsg', err.message, true); }
+}
+async function addCur(){
+  const v = document.querySelector('input[name=dbp]:checked'); if(!v) return;
+  try{ await api('/api/rucne/dodaj', {db_id: +v.value, r: CUR}); await loadRucne(); renderCard(CUR); msg('#addmsg', 'Dodano na ručni popis.'); }
+  catch(err){ msg('#addmsg', err.message, true); }
+}
+
+/* ---------- rucni popis ---------- */
+async function loadRucne(){
+  let j; try{ j = await api('/api/rucne?skala=' + skala()); }catch(e){ return; }
+  RU = j.popis;
+  $('#cnt-rucno').textContent = RU.length ? RU.length.toLocaleString('hr-HR') : '';
+  $('#rucne-n').textContent = RU.length.toLocaleString('hr-HR');
+  const nr = RU.filter(x=>x.izvor==='rucno').length;
+  $('#ru-sum').textContent = RU.length ? `${nr} ručno, ${RU.length-nr} auto` : '';
+  renderRucne();
+  const b = j.bez_kluba;
+  $('#bezstats').innerHTML = `<div class="stat"><b>${(b.ukupno??0).toLocaleString('hr-HR')}</b><span>bez kluba u bazi</span></div>
+    <div class="stat"><b>${b.obradjeno.toLocaleString('hr-HR')}</b><span>već traženo</span></div>
+    <div class="stat"><b>${b.nadjeno.toLocaleString('hr-HR')}</b><span>nađeno i ocijenjeno</span></div>`;
+  const auto = RU.filter(x=>x.izvor==='auto').slice(0,25);
+  $('#bezlist').innerHTML = auto.length ? auto.map(rItem).join('') : '<li class="sub" style="display:block">Još ništa. Pokreni traženje.</li>';
+}
+function rItem(x){
+  return `<li><span class="who">${esc(x.db_ime)} <span class="tag ${x.izvor==='rucno'?'rucno':''}">${x.izvor==='rucno'?'ručno':'auto'}</span>
+    <small>TM: ${esc(x.tm_ime)} · ${esc(x.klub||'bez kluba')} · ${x.godine??'?'} g. · ${mil(x.vrijednost)}</small></span>
+    ${badge(x.staro,'sm')}<span class="arrow">→</span><span class="row" style="gap:6px">${badge(x.cilj,'sm')}<button class="link" data-rm="${x.db_id}" aria-label="Makni ${esc(x.db_ime)} s popisa">makni</button></span></li>`;
+}
+function renderRucne(){
+  const q = $('#ruq').value.trim().toLowerCase(), src = $('#rusrc').value;
+  const L = RU.filter(x => (!src || x.izvor===src) && (!q || (x.db_ime+' '+x.tm_ime+' '+(x.klub||'')).toLowerCase().includes(q)));
+  $('#rulist').innerHTML = L.length ? L.slice(0,400).map(rItem).join('') + (L.length>400?`<li class="sub" style="display:block">…i još ${L.length-400}. Suzi filtrom.</li>`:'')
+    : `<li class="sub" style="display:block">${RU.length ? 'Ništa ne odgovara filtru.' : 'Popis je prazan. Potraži igrača lijevo i dodaj ga.'}</li>`;
+  $('#ru-run').disabled = !RU.length || running;
+}
+$('#ruq').addEventListener('input', renderRucne); $('#rusrc').addEventListener('change', renderRucne);
+document.addEventListener('click', async e => {
+  const id = e.target.dataset && e.target.dataset.rm; if(!id) return;
+  try{ await api('/api/rucne/makni', {db_ids:[+id]}); loadRucne(); }catch(err){ msg('#rumsg', err.message, true); }
+});
+$('#ru-run').addEventListener('click', async () => {
+  try{ await api('/api/pokreni', {samo_rucne:true, skala: skala(), maxpromjena: $('#maxon').checked ? +$('#maxval').value : 0}); msg('#rumsg', 'Pokrenuto. Rezultat se otvori na kartici Lige.'); poll(); }
+  catch(err){ msg('#rumsg', err.message, true); }
+});
+
+/* ---------- bez kluba ---------- */
+$('#bez-run').addEventListener('click', async () => {
+  try{ await api('/api/zadatak', {tip:'bezkluba', reprezentacija: $('#bez-rep').checked, ponovi: $('#bez-pon').checked, limit: +$('#bez-lim').value});
+       msg('#bezmsg', 'Pokrenuto. Napredak je u traci gore, a nađeni igrači pojavljuju se desno.'); poll(); }
+  catch(err){ msg('#bezmsg', err.message, true); }
+});
+$('#bez-clear').addEventListener('click', async () => {
+  const n = RU.filter(x=>x.izvor==='auto').length; if(!n) return;
+  if(!confirm(`Maknuti ${n} automatski dodanih igrača s ručnog popisa? Ručno dodani ostaju.`)) return;
+  await api('/api/rucne/makni', {izvor:'auto'}); loadRucne();
+});
+
+/* ---------- formula ---------- */
+document.querySelectorAll('[data-task]').forEach(b => b.addEventListener('click', async () => {
+  try{ await api('/api/zadatak', {tip:b.dataset.task}); msg('#toolmsg', 'Pokrenuto. Napredak je u traci gore.'); poll(); }
+  catch(err){ msg('#toolmsg', err.message, true); }
+}));
+async function loadModel(){
+  let m; try{ m = await api('/api/model'); }catch(e){ return; }
+  if(m.nema){ $('#modelinfo').textContent = 'Formula još nije naučena. Na kartici Formula pokreni "Nauči formulu".'; return; }
+  PRAG = m.prag; NAGIB = m.baza_nagib; drawLadder();
+  $('#modelinfo').innerHTML = `Formula: Transfermarkt → EA FC 27<br>naučena ${esc(m.datum)} na ${m.n.toLocaleString('hr-HR')} igrača, prosječna greška ${fmt(m.greska,2)}`;
+  $('#formulaopis').textContent = `Formula je naučena ${m.datum} na ${m.n.toLocaleString('hr-HR')} igrača iz ${m.lige.length} liga koji imaju i Transfermarkt vrijednost i EA FC ocjenu. Na igračima koje nije vidjela pogađa prosječno ±${fmt(m.greska,2)}, a ${Math.round(m.unutar3*100)} % je unutar ±3. Ulazi: vrijednost, godine, pozicija, jačina kluba i lige, regija.`;
+}
+
+/* ---------- status zadatka ---------- */
+$('#logbtn').addEventListener('click', () => { const l = $('#log'); l.hidden = !l.hidden; $('#logbtn').setAttribute('aria-expanded', !l.hidden); if(!l.hidden) l.scrollTop = l.scrollHeight; });
+$('#stop').addEventListener('click', () => api('/api/stop', {}));
+let polling = false;
+async function poll(){
+  if(polling) return; polling = true;
+  try{
+    const j = await api('/api/status');
+    const log = $('#log'), atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+    log.textContent = j.log.join('\n'); if(atBottom) log.scrollTop = log.scrollHeight;
+    $('#jobbar').hidden = !j.naziv;
+    const dot = $('#dot');
+    if(j.radi){ dot.className='dot run'; $('#statustxt').textContent = j.naziv; $('#statusdet').textContent = 'radi…'; }
+    else if(j.izlaz===0){ dot.className='dot ok'; $('#statustxt').textContent = j.naziv; $('#statusdet').textContent = 'gotovo'; }
+    else if(j.izlaz!=null){ dot.className='dot err'; $('#statustxt').textContent = j.naziv; $('#statusdet').textContent = 'prekinuto, otvori zapis rada'; }
+    const pr = j.rezultat && j.rezultat.napredak;
+    $('#prog').hidden = !(pr && j.radi);
+    if(pr){ $('#prog i').style.width = (100*pr[0]/pr[1]) + '%'; if(j.radi) $('#statusdet').textContent = `${pr[0]} / ${pr[1]}`; }
+    $('#stop').hidden = !j.radi;
+    const was = running; running = j.radi; updateSel(); renderRucne();
+    document.querySelectorAll('[data-task]').forEach(b => b.disabled = j.radi);
+    $('#bez-run').disabled = j.radi;
+    if(j.radi && j.tip==='bezkluba' && pr && pr[0] % 5 === 0) loadRucne();
+    if(was && !j.radi){ loadFiles(); loadModel(); loadRucne(); }
+    if(!j.radi && j.rezultat && j.rezultat.xlsx && lastShown !== j.rezultat.xlsx){ lastShown = j.rezultat.xlsx; if(was) showResult(j.rezultat.xlsx, j.rezultat.csv); }
+    polling = false;
+    if(j.radi) setTimeout(poll, 1000);
+  }catch(e){ polling = false; setTimeout(poll, 3000); }
+}
+
+/* ---------- rezultati i datoteke ---------- */
+const pl = p => `<li><span class="who">${esc(p.ime)}<small>${esc(p.klub||'')} · ${esc(p.poz)} · ${p.dob} g. · ${p.vrijednost??'–'} M €</small></span>${badge(p.staro,'sm')}<span class="arrow">→</span>${badge(p.novo,'sm')}</li>`;
+async function showResult(xlsx, csv){
+  let s; try{ s = await api('/api/sazetak?f=' + encodeURIComponent(xlsx)); }catch(e){ msg('#filemsg', e.message, true); return; }
+  showTab('lige');
+  $('#rezultati').hidden = false; $('#rezfile').textContent = xlsx;
+  $('#rezstats').innerHTML = `<div class="stat"><b>${s.ukupno.toLocaleString('hr-HR')}</b><span>ocijenjenih igrača</span></div>
+    <div class="stat"><b>${s.tocno.toLocaleString('hr-HR')}</b><span>dobilo točno ciljni overall</span></div>
+    <div class="stat"><b>${s.neupareno.toLocaleString('hr-HR')}</b><span>s Transfermarkta nije nađeno u bazi</span></div>`;
+  $('#rezakcije').innerHTML = (csv ? `<button class="big inline" data-desk="${esc(csv)}">Kopiraj CSV na Desktop</button>
+    <a class="ghost" href="/preuzmi?f=${encodeURIComponent(csv)}">Preuzmi CSV</a>` : '') + `<a class="ghost" href="/preuzmi?f=${encodeURIComponent(xlsx)}">Preuzmi Excel izvještaj</a>`;
+  $('#rezlige').innerHTML = s.lige.map(l => `<tr><td>${esc(l.liga)}</td><td class="n">${l.n}</td>
+    <td class="n delta ${l.prosjek<0?'neg':l.prosjek>0?'pos':''}">${l.prosjek>0?'+':''}${fmt(l.prosjek)}</td><td class="n">${l.pad5}</td><td class="n">${l.rast5}</td></tr>`).join('');
+  $('#reztop').innerHTML = s.najbolji.map(pl).join(''); $('#rezpad').innerHTML = s.padovi.map(pl).join(''); $('#rezrast').innerHTML = s.rast.map(pl).join('');
+  $('#rezultati').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+}
+document.addEventListener('click', async e => {
+  const f = e.target.dataset && e.target.dataset.desk; if(!f) return;
+  try{ const j = await api('/api/desktop', {f}); msg('#filemsg', 'Kopirano: ' + j.put); e.target.textContent = 'Kopirano na Desktop'; }
+  catch(err){ msg('#filemsg', err.message, true); }
+});
+document.addEventListener('click', e => { const f = e.target.dataset && e.target.dataset.show; if(f){ lastShown = f; showResult(f, null); } });
+async function loadFiles(){
+  let f; try{ f = await api('/api/datoteke'); }catch(e){ return; }
+  $('#files').innerHTML = f.length ? f.slice(0,10).map(x => `<li><span class="nm" title="${esc(x.ime)}">${esc(x.ime)}</span><span class="act">
+    <span class="sub">${x.vrijeme}</span>
+    ${x.ime.endsWith('.xlsx') ? `<button class="link" data-show="${esc(x.ime)}">Prikaži</button>` : `<button class="link" data-desk="${esc(x.ime)}">Na Desktop</button>`}
+    <a class="link" href="/preuzmi?f=${encodeURIComponent(x.ime)}">Preuzmi</a></span></li>`).join('')
+    : '<li class="sub">Još nema izvještaja. Odaberi lige i pokreni izračun.</li>';
+}
+$('#mapa').addEventListener('click', () => api('/api/mapa', {}).catch(err => msg('#filemsg', err.message, true)));
+
+/* ---------- start ---------- */
+try{ const s = localStorage.getItem('ocjene-skala'); if(s!==null) $('#skala').value = s; }catch(e){}
+drawLadder(); loadLige(); loadFiles(); loadModel(); poll();
+try{ const t = localStorage.getItem('ocjene-tab'); if(TABS.includes(t)) showTab(t); }catch(e){}
+function fromHash(){
+  const [t, q] = decodeURIComponent(location.hash.slice(1)).split('/');
+  if(TABS.includes(t)) showTab(t);
+  if(t==='igraci' && q){ $('#tmq').value = q; $('#tmform').requestSubmit(); }
+}
+window.addEventListener('hashchange', fromHash); if(location.hash) fromHash();
+</script>
+</body>
+</html>

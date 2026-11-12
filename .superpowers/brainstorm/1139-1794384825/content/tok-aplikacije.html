@@ -1,0 +1,54 @@
+<h2>Kako bi aplikacija trebala biti složena?</h2>
+<p class="subtitle">Oba prikaza rade isto (baza → opseg → promjene → obrada → spremanje → pregled). Razlika je u tome kako korisnik prolazi kroz to. Tekst u skicama je na engleskom, kao u pravoj aplikaciji.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Čarobnjak u koracima</h3>
+      <p>Vodi korak po korak, kao instalacija. Lako za nove korisnike, ali za „samo osvježi Albaniju“ treba proći sve korake.</p>
+      <div class="mockup">
+        <div class="mockup-header">Preview: wizard</div>
+        <div class="mockup-body">
+          <div class="mock-nav">① Database ── ② Scope ── <b>③ Changes</b> ── ④ Run ── ⑤ Save ── ⑥ Review</div>
+          <div class="mock-content" style="padding:12px">
+            <h3 style="margin:0 0 6px">What should change?</h3>
+            <div>☑ Ratings from Transfermarkt <span style="opacity:.6">· ~1 min per league</span></div>
+            <div>☑ Fix age, nationality, height</div>
+            <div>☑ EA FC attribute profiles</div>
+            <div>☐ Injury resistance <span style="opacity:.6">· ~1 h for 10k players</span></div>
+            <div>☐ Contracts and loans</div>
+            <div>☐ National teams from latest call-up</div>
+            <div>☐ Remove retired / duplicate free agents</div>
+            <div style="margin-top:10px;display:flex;justify-content:space-between"><button class="mock-button">Back</button><button class="mock-button">Next: Run</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Radni prostor (baza lijevo, posao desno)</h3>
+      <p>Baza je stalno otvorena, a pregled s filterima je uvijek tu. Novi posao je jedna ploča: opseg + promjene + kamo spremiti. Ponovljeni posao („Albania again“) je jedan klik iz povijesti.</p>
+      <div class="mockup">
+        <div class="mockup-header">Preview: workspace</div>
+        <div class="mockup-body" style="display:flex;gap:8px">
+          <div class="mock-sidebar" style="min-width:150px">
+            <b>ModStudio DB</b><br><span style="opacity:.6">203,118 players</span><br><br>
+            ▸ Browse &amp; filter<br>▸ <b>New job</b><br>▸ History<br>&nbsp;&nbsp;· Albania, 10 Nov<br>&nbsp;&nbsp;· Bosnia, 11 Nov<br>▸ Settings
+          </div>
+          <div class="mock-content" style="padding:10px;flex:1">
+            <h3 style="margin:0 0 6px">New job</h3>
+            <div><b>On whom:</b> <span class="mock-input" style="display:inline-block;padding:2px 8px">Leagues: Albania Superliga ✕</span></div>
+            <div style="margin-top:6px"><b>What:</b> ☑ Ratings ☑ Data fixes ☑ EA profiles ☐ Injuries ☑ Contracts ☐ National teams</div>
+            <div style="margin-top:6px"><b>Start from:</b> ◉ last output (Bosnia, 11 Nov) ○ original database</div>
+            <div style="margin-top:6px"><b>Save to:</b> D:\Mods\DB_out ▾ &nbsp;☐ also copy into game</div>
+            <div style="margin-top:10px"><button class="mock-button">Run · ~2 min</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

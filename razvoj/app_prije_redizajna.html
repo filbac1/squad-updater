@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squad Updater</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7ECF1; --panel:#FFFFFF; --ink:#13243A; --ink2:#4A5B70; --line:#CDD6E0; --soft:#F2F5F8;
+  --navy:#173A63; --navy-ink:#FFFFFF; --focus:#2F7DD1;
+  --r90:#D7263D; --r80:#EE6A2C; --r75:#C99A00; --r70:#3FA34D; --r0:#3C7FB0;
+  --ok:#2F8F46; --bad:#C2362F; --warn:#B37400; --logbg:#0F1E30; --logink:#CFE0F2;
+  --cond:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow','Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#101B29; --panel:#172638; --ink:#E6EDF5; --ink2:#9FB0C3; --line:#2A3D54; --soft:#1D2F45; --navy:#2C5A8F; --focus:#6FB0F5; --logbg:#0B1522; }
+}
+:root[data-theme="dark"]{ --bg:#101B29; --panel:#172638; --ink:#E6EDF5; --ink2:#9FB0C3; --line:#2A3D54; --soft:#1D2F45; --navy:#2C5A8F; --focus:#6FB0F5; --logbg:#0B1522; }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15.5px/1.5 var(--body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+h1{font:700 30px/1 var(--cond);margin:0;letter-spacing:.2px}
+h2{font:600 26px/1.1 var(--cond);margin:0 0 6px}
+h3{font:600 19px/1.2 var(--cond);margin:0 0 6px}
+.sub{color:var(--ink2);font-size:14px}
+.small{font-size:13px}
+
+/* ---- shell ---- */
+.shell{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}
+aside.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;overflow:auto}
+main{padding:20px 24px 60px;min-width:0}
+@media (max-width:860px){.shell{grid-template-columns:minmax(0,1fr)}aside.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:16px}}
+.brand{display:flex;align-items:baseline;gap:8px}
+.brand small{font:500 13px var(--body);color:var(--ink2)}
+.dbcard{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--soft)}
+.dbcard .k{font-size:12.5px;color:var(--ink2)}
+.dbcard .v{font-weight:600;overflow-wrap:anywhere;font-size:14px}
+.dbcard .n{font:700 24px/1 var(--cond);margin-top:4px}
+nav.views{display:flex;flex-direction:column;gap:2px}
+nav.views button{all:unset;cursor:pointer;padding:9px 10px;border-radius:5px;font:600 20px var(--cond);color:var(--ink2);display:flex;justify-content:space-between;align-items:center}
+nav.views button:hover{background:var(--soft);color:var(--ink)}
+nav.views button[aria-current="page"]{background:var(--navy);color:var(--navy-ink)}
+nav.views button:focus-visible{outline:3px solid var(--focus)}
+nav.views .cnt{font:500 13px var(--body);opacity:.8}
+.linkbtn{background:none;border:0;color:var(--focus);cursor:pointer;padding:0;text-decoration:underline;font-size:inherit}
+
+/* ---- job bar ---- */
+.jobbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin-bottom:16px}
+.jobbar .grow{flex:1;min-width:200px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ink2);flex-shrink:0}
+.dot.run{background:var(--r75);animation:pulse 1s infinite}.dot.ok{background:var(--ok)}.dot.err{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+.prog{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--navy);width:0;transition:width .4s}
+.steps{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.steps span{font-size:12px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.steps span.done{border-color:var(--ok);color:var(--ok)}
+.steps span.now{border-color:var(--navy);background:var(--navy);color:var(--navy-ink)}
+pre.log{background:var(--logbg);color:var(--logink);border-radius:5px;padding:10px;max-height:300px;overflow:auto;font:12.5px/1.45 Consolas,monospace;white-space:pre-wrap;margin:10px 0 0;width:100%}
+@media (prefers-reduced-motion:reduce){.dot.run{animation:none}.prog i{transition:none}}
+
+/* ---- generic ---- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:6px;background:var(--navy);color:var(--navy-ink);font:700 19px var(--cond);padding:9px 18px;cursor:pointer}
+.btn.big{font-size:22px;padding:12px 22px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.ghost{border:1px solid var(--line);background:transparent;padding:7px 12px;border-radius:5px;cursor:pointer;text-decoration:none;display:inline-block;color:var(--ink)}
+.ghost:hover{border-color:var(--navy)}
+.ghost:disabled{opacity:.5;cursor:not-allowed}
+input[type=search],input[type=text],input[type=number],select{padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--soft)}
+.msg{font-size:14px;margin-top:8px;min-height:1.2em}.msg.err{color:var(--bad)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 5px;border-radius:4px;color:#fff;font:700 18px/1 var(--cond);font-variant-numeric:tabular-nums}
+.badge.xl{min-width:64px;height:54px;font-size:38px;border-radius:6px}
+.t90{background:var(--r90)}.t80{background:var(--r80)}.t75{background:var(--r75)}.t70{background:var(--r70)}.t0{background:var(--r0)}
+.tag{font-size:12px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap;display:inline-block;margin:1px 2px 1px 0}
+.tag.warn{border-color:var(--warn);color:var(--warn)}.tag.bad{border-color:var(--bad);color:var(--bad)}.tag.good{border-color:var(--ok);color:var(--ok)}.tag.navy{border-color:var(--navy);color:var(--navy)}
+.empty{padding:28px 6px;color:var(--ink2)}
+.arrow{color:var(--ink2);margin:0 3px}
+.delta{font-size:12.5px;font-variant-numeric:tabular-nums;margin-left:4px}.delta.neg{color:var(--bad)}.delta.pos{color:var(--ok)}
+
+/* ---- browse ---- */
+.browse{display:grid;grid-template-columns:250px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.browse{grid-template-columns:minmax(0,1fr)}}
+.filters{display:flex;flex-direction:column;gap:12px}
+.filters label.f{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--ink2)}
+.filters label.f > *{color:var(--ink)}
+.range{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.range input{width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--navy);color:var(--navy);border-radius:999px;padding:1px 4px 1px 9px;font-size:13px}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0 3px}
+.poz{display:flex;flex-wrap:wrap;gap:3px}
+.poz button{border:1px solid var(--line);background:var(--soft);border-radius:4px;padding:2px 6px;font:600 14px var(--cond);cursor:pointer}
+.poz button[aria-pressed="true"]{background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
+.stlist{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.stlist label{display:flex;gap:7px;align-items:center;justify-content:space-between;cursor:pointer}
+.stlist .c{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.tablehead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.tablehead .count{font:700 24px var(--cond)}
+.tablewrap{overflow:auto;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{font:600 15px var(--cond);text-align:left;color:var(--ink2);padding:8px 6px;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);z-index:1;white-space:nowrap}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:3px solid var(--focus)}
+th[aria-sort="descending"] button::after{content:" ▾"}th[aria-sort="ascending"] button::after{content:" ▴"}
+td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--soft)}
+td .who small{display:block;color:var(--ink2);font-size:12.5px}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
+
+/* ---- detail ---- */
+dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(560px,100vw);border:0;border-left:1px solid var(--line);padding:0;background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(10,20,35,.4)}
+.drawer .in{padding:20px}
+.drawer .name{font:700 34px/1.05 var(--cond)}
+.attrs{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:2px 10px;font-size:14px;margin-top:8px}
+.attrs .h{font:600 14px var(--cond);color:var(--ink2)}
+.attrs .v{text-align:right;font-variant-numeric:tabular-nums}
+.attrs .up{color:var(--ok);font-weight:600}.attrs .dn{color:var(--bad);font-weight:600}
+dialog.modal{border:1px solid var(--line);border-radius:8px;padding:0;background:var(--panel);color:var(--ink);width:min(680px,calc(100vw - 32px))}
+dialog.modal form{padding:20px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;padding:11px;border:1px solid var(--line);border-radius:6px;margin-bottom:8px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--navy);background:var(--soft)}
+.opt .d{grid-column:2;font-size:13.5px;color:var(--ink2)}
+.pathrow{display:flex;gap:8px;margin-top:8px}.pathrow input{flex:1;min-width:0}
+
+/* ---- new job ---- */
+.job{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.job{grid-template-columns:minmax(0,1fr)}}
+.sec{margin-bottom:16px}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.seg label{border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:14px;background:var(--soft)}
+.seg label:has(input:checked){background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:focus-visible){outline:3px solid var(--focus)}
+.picklist{list-style:none;margin:6px 0 0;padding:0;max-height:300px;overflow:auto;border-top:1px solid var(--line)}
+.picklist li label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 2px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14.5px}
+.picklist .c{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.ops{display:flex;flex-direction:column;gap:6px}
+.opgrp{font:600 15px var(--cond);color:var(--ink2);margin:10px 0 2px}
+.op{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;align-items:start}
+.op:has(input:checked){border-color:var(--navy);box-shadow:inset 4px 0 0 var(--navy)}
+.op b{font-weight:600}
+.op .d{grid-column:2/4;font-size:13.5px;color:var(--ink2)}
+.op .time{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.op .time.slow{color:var(--warn)}
+.runcard{position:sticky;top:16px}
+.stepest{list-style:none;margin:0 0 6px;padding:0;font-size:13.5px}
+.stepest li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dashed var(--line)}
+.stepest li span:last-child{color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stepest li.big span:last-child{color:var(--warn);font-weight:600}
+.estimate{display:flex;align-items:baseline;gap:10px;margin:8px 0 12px}
+.estimate b{font:700 40px/1 var(--cond)}
+.scale{margin-top:8px;padding:10px 12px;background:var(--soft);border-radius:6px;font-size:13.5px}
+.scale input{width:100%;accent-color:var(--navy)}
+
+/* ---- history ---- */
+.hist{list-style:none;margin:0;padding:0}
+.hist li{padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px}
+.hist .when{font:600 18px var(--cond)}
+.hist .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.settings{max-width:760px;display:flex;flex-direction:column;gap:16px}
+code.line{display:block;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:13px Consolas,monospace;overflow-wrap:anywhere;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><h1>Squad Updater</h1></div>
+    <div class="dbcard">
+      <div class="k" data-t="Database">Database</div>
+      <div class="v" id="dbname">…</div>
+      <div class="n" id="dbn"></div>
+      <div class="k" id="dbsub"></div>
+      <div class="row" style="margin-top:8px"><button class="ghost" id="chgdb" data-t="Change database">Change database</button></div>
+    </div>
+    <div class="dbcard">
+      <div class="k" data-t="Output folder">Output folder</div>
+      <div class="v small" id="outname">…</div>
+      <div class="k" id="outsub"></div>
+      <div class="row" style="margin-top:8px"><button class="ghost" id="openout" data-t="Open folder">Open folder</button></div>
+    </div>
+    <nav class="views" aria-label="Sections">
+      <button data-view="browse" aria-current="page"><span data-t="Players">Players</span><span class="cnt" id="c-browse"></span></button>
+      <button data-view="job"><span data-t="New job">New job</span></button>
+      <button data-view="history"><span data-t="History">History</span><span class="cnt" id="c-history"></span></button>
+      <button data-view="settings"><span data-t="Settings">Settings</span><span class="cnt" id="c-settings" title="Ratings data is old"></span></button>
+    </nav>
+    <div class="sub small" style="margin-top:auto"><span id="vtag"></span><br><a class="linkbtn" href="/classic" data-t="Classic tools (manual list, single player search, formula)">Classic tools (manual list, single player search, formula)</a></div>
+  </aside>
+
+  <main>
+    <div class="jobbar" id="jobbar" hidden>
+      <span class="dot" id="dot"></span>
+      <div class="grow">
+        <div><b id="jobname"></b> <span class="sub" id="jobdet"></span></div>
+        <div class="steps" id="jobsteps"></div>
+        <div class="prog" id="prog" hidden><i></i></div>
+      </div>
+      <button class="ghost" id="logbtn" aria-expanded="false" data-t="Show log">Show log</button>
+      <button class="ghost" id="stopbtn" hidden data-t="Stop">Stop</button>
+      <pre class="log" id="log" hidden></pre>
+    </div>
+
+    <!-- ================= PLAYERS ================= -->
+    <section id="v-browse">
+      <div class="browse">
+        <div class="panel filters" aria-label="Filters">
+          <label class="f"><span data-t="Search">Search</span><input type="search" id="fq" placeholder="Name, club or ID"></label>
+          <label class="f"><span data-t="League">League</span><select id="fliga"><option value="">—</option></select><div class="chips" id="cliga"></div></label>
+          <label class="f"><span data-t="Club">Club</span><input type="search" id="fklubq" list="klubdl" placeholder="Type a club"><datalist id="klubdl"></datalist><div class="chips" id="cklub"></div></label>
+          <label class="f"><span data-t="Nationality">Nationality</span><input type="search" id="fdrzq" list="drzdl"><datalist id="drzdl"></datalist><div class="chips" id="cdrz"></div></label>
+          <label class="f"><span data-t="National team">National team</span><select id="frepr"><option value="">—</option></select></label>
+          <div class="f"><span class="sub small" data-t="Position">Position</span><div class="poz" id="fpoz"></div></div>
+          <div class="f"><span class="sub small" data-t="Age">Age</span><div class="range"><input type="number" id="fa0" min="14" max="50" placeholder="14"><span>–</span><input type="number" id="fa1" min="14" max="50" placeholder="50"></div></div>
+          <div class="f"><span class="sub small" data-t="Overall">Overall</span><div class="range"><input type="number" id="fo0" min="40" max="99" placeholder="40"><span>–</span><input type="number" id="fo1" min="40" max="99" placeholder="99"></div></div>
+          <div class="f"><span class="sub small" data-t="Status">Status</span><div class="stlist" id="fst"></div></div>
+          <label class="f"><span data-t="Contract ends in">Contract ends in</span><select id="fug"><option value="">—</option></select></label>
+          <label class="f"><span data-t="Overall changed by at least">Overall changed by at least</span><input type="number" id="fdelta" min="0" max="40" placeholder="0"></label>
+          <div class="row"><button class="ghost" id="freset" data-t="Clear filters">Clear filters</button></div>
+        </div>
+        <div class="panel">
+          <div class="tablehead">
+            <div><span class="count" id="tcount">…</span> <span class="sub" data-t="players">players</span></div>
+            <div class="row">
+              <button class="btn" id="usescope" data-t="Use as scope for new job">Use as scope for new job</button>
+              <a class="ghost" id="excsv" data-t="Export CSV">Export CSV</a>
+              <a class="ghost" id="exxlsx" data-t="Export Excel">Export Excel</a>
+            </div>
+          </div>
+          <div class="tablewrap" style="max-height:72vh">
+            <table>
+              <thead><tr>
+                <th data-s="ime"><button data-t="Player">Player</button></th>
+                <th data-s="klub"><button data-t="League">League</button></th>
+                <th data-s="poz"><button data-t="Pos">Pos</button></th>
+                <th data-s="dob" class="n"><button data-t="Age">Age</button></th>
+                <th data-s="ovr" class="n"><button data-t="Overall">Overall</button></th>
+                <th data-s="vr" class="n" aria-sort="descending"><button data-t="Value">Value</button></th>
+                <th data-s="ug" class="n"><button data-t="Contract">Contract</button></th>
+                <th data-t="Status">Status</th>
+              </tr></thead>
+              <tbody id="tbody"><tr><td colspan="8" class="empty">…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pager"><button class="ghost" id="pprev">‹</button><span class="sub" id="ppage"></span><button class="ghost" id="pnext">›</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= NEW JOB ================= -->
+    <section id="v-job" hidden>
+      <div class="job">
+        <div>
+          <div class="panel sec">
+            <h2 data-t="Players to update">Players to update</h2>
+            <p class="sub" style="margin:0" data-t="Everyone outside this choice stays exactly as in the input database.">Everyone outside this choice stays exactly as in the input database.</p>
+            <div class="seg" role="radiogroup" aria-label="Scope">
+              <label><input type="radio" name="scope" value="sve" checked><span data-t="Whole database">Whole database</span></label>
+              <label><input type="radio" name="scope" value="lige"><span data-t="Leagues">Leagues</span></label>
+              <label><input type="radio" name="scope" value="klubovi"><span data-t="Clubs and national teams">Clubs and national teams</span></label>
+              <label><input type="radio" name="scope" value="filter" id="scope-filter"><span data-t="Filtered players">Filtered players</span></label>
+            </div>
+            <div id="sc-lige" hidden>
+              <input type="search" id="scligeq" placeholder="Find a league" style="width:100%">
+              <ul class="picklist" id="scligel"></ul>
+            </div>
+            <div id="sc-klubovi" hidden>
+              <div class="row"><input type="search" id="scklubq" list="klubdl2" placeholder="Add a club" style="flex:1"><datalist id="klubdl2"></datalist>
+                <select id="screpr"><option value="">+ National team</option></select></div>
+              <div class="chips" id="scklubc" style="margin-top:8px"></div>
+            </div>
+            <div id="sc-filter" hidden><p class="sub" id="scfiltdesc" style="margin:0"></p></div>
+            <p class="sub" id="scopeinfo" style="margin:10px 0 0"></p>
+          </div>
+
+          <div class="panel sec">
+            <h2 data-t="Changes">Changes</h2>
+            <div class="ops" id="ops"></div>
+          </div>
+        </div>
+
+        <div class="panel runcard">
+          <h2 data-t="Save">Save</h2>
+          <div class="sub small" data-t="Start from">Start from</div>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="od" value="original" checked><span data-t="Input database">Input database</span></label>
+            <label id="od-iz"><input type="radio" name="od" value="izlaz"><span data-t="Last output">Last output</span></label>
+          </div>
+          <div class="sub small" data-t="New database is saved to">New database is saved to</div>
+          <div class="pathrow"><input type="text" id="outpath"><button class="ghost" id="outpick" type="button" data-t="Choose…">Choose…</button></div>
+          <p class="sub small" style="margin:6px 0 0" data-t="A full copy of the input database with the changed files. The input database is never modified.">A full copy of the input database with the changed files. The input database is never modified.</p>
+          <label class="row" style="margin-top:10px;gap:8px" id="ugrow"><input type="checkbox" id="ugame"> <span data-t="Also copy into the game">Also copy into the game</span></label>
+          <p class="sub small" id="ugamehint" style="margin:2px 0 0"></p>
+          <div class="estimate"><b id="est">–</b><span class="sub" id="estsub"></span></div>
+          <ul class="stepest" id="stepest"></ul>
+          <p class="sub small" id="esttip" style="margin:0 0 10px"></p>
+          <button class="btn big" id="runjob" style="width:100%" data-t="Run job">Run job</button>
+          <div class="msg" id="jobmsg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= HISTORY ================= -->
+    <section id="v-history" hidden>
+      <div class="panel">
+        <h2 data-t="Job history">Job history</h2>
+        <ul class="hist" id="hist"></ul>
+      </div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section id="v-settings" hidden>
+      <div class="settings">
+        <div class="panel">
+          <h2 data-t="Language">Language</h2>
+          <div class="seg"><label><input type="radio" name="lang" value="en"><span>English</span></label><label><input type="radio" name="lang" value="hr"><span>Hrvatski</span></label></div>
+        </div>
+        <div class="panel">
+          <h2 data-t="Copy into the game">Copy into the game</h2>
+          <p class="sub" data-t="Optional. Choose a Sider live CPK folder (or any folder your game loads). Jobs with “Also copy into the game” copy the changed files there; files already in that folder are backed up first.">Optional. Choose a Sider live CPK folder (or any folder your game loads). Jobs with “Also copy into the game” copy the changed files there; files already in that folder are backed up first.</p>
+          <div class="pathrow"><input type="text" id="gamepath" placeholder="e.g. D:\PES 2021\livecpk\MyUpdate"><button class="ghost" id="gamepick" type="button" data-t="Choose…">Choose…</button></div>
+          <p class="sub small" id="gameline" style="margin:8px 0 0"></p>
+          <div class="row" style="margin-top:10px"><button class="btn" id="savegame" data-t="Save">Save</button><span class="msg" id="setmsg" style="margin:0"></span></div>
+        </div>
+        <div class="panel">
+          <h2 data-t="Where the game is">Where the game is</h2>
+          <p class="sub" data-t="Needed only for “Game database”: the PES 2021 folder (with Data and download) and your sider.ini.">Needed only for “Game database”: the PES 2021 folder (with Data and download) and your sider.ini.</p>
+          <div class="pathrow"><input type="text" id="igradir" placeholder="e.g. D:\Games\eFootball PES 2021"><button class="ghost" id="igradirb" type="button" data-t="Choose…">Choose…</button></div>
+          <div class="pathrow"><input type="text" id="siderini" placeholder="e.g. D:\Games\eFootball PES 2021\Sider\sider.ini"><button class="ghost" id="siderinib" type="button" data-t="Choose…">Choose…</button></div>
+          <div class="row" style="margin-top:10px"><button class="btn" id="saveigra" data-t="Save">Save</button><span class="msg" id="igramsg" style="margin:0"></span></div>
+        </div>
+        <div class="panel" id="datapanel">
+          <h2 data-t="Ratings data">Ratings data</h2>
+          <p class="sub" data-t="Ratings are learned from EA SPORTS FC ratings and Transfermarkt values. The data ships with the app and gets older over the season.">Ratings are learned from EA SPORTS FC ratings and Transfermarkt values. The data ships with the app and gets older over the season.</p>
+          <div id="datainfo" class="sub" style="margin-bottom:8px">…</div>
+          <div class="row"><button class="btn" id="updata" data-t="Update ratings data">Update ratings data</button><span class="sub small" id="updatasub"></span></div>
+          <p class="sub small" style="margin:8px 0 0" data-t="Downloads the current EA ratings and Transfermarkt squads, then learns the formula again. If anything goes wrong the previous formula stays.">Downloads the current EA ratings and Transfermarkt squads, then learns the formula again. If anything goes wrong the previous formula stays.</p>
+          <div class="msg" id="datamsg"></div>
+        </div>
+        <div class="panel">
+          <h2 data-t="Program version">Program version</h2>
+          <p class="sub" id="verline">…</p>
+          <div class="row"><button class="ghost" id="chkver" data-t="Check for a new version">Check for a new version</button><span class="msg" id="vermsg" style="margin:0"></span></div>
+          <details style="margin-top:10px"><summary class="sub small" data-t="Update address (advanced)">Update address (advanced)</summary>
+            <p class="sub small" data-t="A web address of a small file with the latest version, provided by whoever sent you this program.">A web address of a small file with the latest version, provided by whoever sent you this program.</p>
+            <div class="pathrow"><input type="text" id="updurl" placeholder="https://…/latest.json"><button class="ghost" id="saveupd" type="button" data-t="Save">Save</button></div></details>
+        </div>
+        <div class="panel">
+          <h2 data-t="Player list">Player list</h2>
+          <p class="sub" id="katinfo"></p>
+          <button class="ghost" id="rekat" data-t="Rebuild player list">Rebuild player list</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog class="drawer" id="drawer" aria-labelledby="dname"><div class="in" id="dbody"></div></dialog>
+
+<dialog class="modal" id="dbdlg" aria-labelledby="dbdlg-h">
+  <form method="dialog" id="dbform">
+    <h2 id="dbdlg-h" data-t="Open a database">Open a database</h2>
+    <label class="opt"><input type="radio" name="btip" value="igra"><b data-t="Game database">Game database</b><span class="d" data-t="What the game loads now (Sider live CPK folders and game CPK files).">What the game loads now (Sider live CPK folders and game CPK files).</span></label>
+    <label class="opt"><input type="radio" name="btip" value="mapa"><b data-t="Database folder">Database folder</b><span class="d" data-t="CommonLib, Mod Studio or an unpacked database. Player.bin, Team.bin and PlayerAppearance.bin are found in subfolders.">CommonLib, Mod Studio or an unpacked database. Player.bin, Team.bin and PlayerAppearance.bin are found in subfolders.</span></label>
+    <label class="opt"><input type="radio" name="btip" value="cpk"><b data-t="CPK file">CPK file</b><span class="d" data-t="The database is read from the CPK.">The database is read from the CPK.</span></label>
+    <label class="opt"><input type="radio" name="btip" value="csv"><b data-t="PES 2020 Editor CSV">PES 2020 Editor CSV</b><span class="d" data-t="No clubs in a CSV: players are matched by name and age, the result is a new CSV.">No clubs in a CSV: players are matched by name and age, the result is a new CSV.</span></label>
+    <div class="pathrow" id="bputrow"><input type="text" id="bput" placeholder="Folder or .cpk"><button type="button" class="ghost" id="bputb" data-t="Choose…">Choose…</button></div>
+    <div class="pathrow" id="bcsvrow"><input type="text" id="bcsv" placeholder="Editor CSV (optional with a folder or CPK)"><button type="button" class="ghost" id="bcsvb" data-t="Choose…">Choose…</button></div>
+    <div class="msg" id="dbmsg"></div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="ghost" value="cancel" formnovalidate data-t="Cancel">Cancel</button><button class="btn" id="dbok" value="default" data-t="Open">Open</button></div>
+  </form>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path, body){
+  const r = await fetch(path, body===undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.greska || ('Error ' + r.status));
+  return j;
+}
+function msg(id, t, err){ const m=$(id); if(!m) return; m.textContent=t||''; m.classList.toggle('err', !!err); }
+
+/* ---------------- language ---------------- */
+const HR = {
+ 'Database':'Baza','Change database':'Promijeni bazu','Output folder':'Izlazna mapa','Open folder':'Otvori mapu','Players':'Igrači','New job':'Novi posao','History':'Povijest','Settings':'Postavke',
+ 'Classic tools (manual list, single player search, formula)':'Klasični alati (ručni popis, traženje igrača, formula)','Show log':'Zapis rada','Hide log':'Sakrij zapis','Stop':'Zaustavi',
+ 'Search':'Traži','League':'Liga','Club':'Klub','Nationality':'Država','National team':'Reprezentacija','Position':'Pozicija','Age':'Godine','Overall':'Ocjena','Status':'Status',
+ 'Contract ends in':'Ugovor ističe','Overall changed by at least':'Ocjena promijenjena barem za','Clear filters':'Očisti filtere','players':'igrača','Use as scope for new job':'Koristi kao opseg novog posla',
+ 'Export CSV':'Izvoz CSV','Export Excel':'Izvoz Excel','Player':'Igrač','Pos':'Poz','Value':'Vrijednost','Contract':'Ugovor',
+ 'Players to update':'Na kome','Everyone outside this choice stays exactly as in the input database.':'Svi izvan ovog izbora ostaju točno kao u ulaznoj bazi.',
+ 'Whole database':'Cijela baza','Leagues':'Lige','Clubs and national teams':'Klubovi i reprezentacije','Filtered players':'Filtrirani igrači','Changes':'Promjene','Save':'Spremi',
+ 'Start from':'Krenuti od','Input database':'Ulazne baze','Last output':'Zadnjeg izlaza','New database is saved to':'Nova baza se sprema u','Choose…':'Odaberi…',
+ 'A full copy of the input database with the changed files. The input database is never modified.':'Cijela kopija ulazne baze s promijenjenim datotekama. Ulazna baza se nikad ne mijenja.',
+ 'Also copy into the game':'Kopiraj i u igru','Run job':'Pokreni posao','Job history':'Povijest poslova','Language':'Jezik','Copy into the game':'Kopiranje u igru',
+ 'Optional. Choose a Sider live CPK folder (or any folder your game loads). Jobs with “Also copy into the game” copy the changed files there; files already in that folder are backed up first.':'Neobavezno. Odaberi Sider livecpk mapu (ili bilo koju mapu koju igra učitava). Poslovi s „Kopiraj i u igru“ kopiraju promijenjene datoteke tamo; postojeće datoteke se prvo spreme.',
+ 'Player list':'Popis igrača','Ratings data':'Podaci o ocjenama','Update ratings data':'Osvježi podatke o ocjenama','Program version':'Verzija programa','Check for a new version':'Provjeri ima li nove verzije','Update address (advanced)':'Adresa za nadogradnju (napredno)','Ratings are learned from EA SPORTS FC ratings and Transfermarkt values. The data ships with the app and gets older over the season.':'Ocjene se uče iz EA SPORTS FC ocjena i Transfermarkt vrijednosti. Podaci dolaze s programom, a tijekom sezone zastarijevaju.','Downloads the current EA ratings and Transfermarkt squads, then learns the formula again. If anything goes wrong the previous formula stays.':'Skida trenutne EA ocjene i Transfermarkt sastave, pa ponovno uči formulu. Ako nešto pođe krivo, ostaje prethodna formula.','Where the game is':'Gdje je igra','Needed only for “Game database”: the PES 2021 folder (with Data and download) and your sider.ini.':'Treba samo za „Bazu igre“: mapa PES 2021 (s Data i download) i tvoj sider.ini.','Rebuild player list':'Ponovno složi popis igrača','Open a database':'Otvori bazu','Game database':'Baza igre',
+ 'What the game loads now (Sider live CPK folders and game CPK files).':'Ono što igra sada učitava (Sider livecpk mape i CPK-ovi igre).','Database folder':'Mapa s bazom',
+ 'CommonLib, Mod Studio or an unpacked database. Player.bin, Team.bin and PlayerAppearance.bin are found in subfolders.':'CommonLib, Mod Studio ili raspakirana baza. Player.bin, Team.bin i PlayerAppearance.bin se nađu u podmapama.',
+ 'CPK file':'CPK datoteka','The database is read from the CPK.':'Baza se čita iz CPK-a.','PES 2020 Editor CSV':'CSV iz PES 2020 Editora',
+ 'No clubs in a CSV: players are matched by name and age, the result is a new CSV.':'CSV nema klubove: igrači se uparuju po imenu i godinama, rezultat je novi CSV.','Cancel':'Odustani','Open':'Otvori',
+};
+let LANG = 'en';
+const t = s => LANG==='hr' ? (HR[s] || s) : s;
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-t]').forEach(el => { const k = el.dataset.t; if(el.childElementCount===0) el.textContent = t(k); });
+}
+
+/* ---------------- formatting ---------------- */
+const N = x => Number(x||0).toLocaleString(LANG==='hr'?'hr-HR':'en-GB');
+const tier = v => v>=90?'t90':v>=80?'t80':v>=75?'t75':v>=70?'t70':'t0';
+const badge = (v, cls='') => v==null ? '<span class="sub">–</span>' : `<span class="badge ${tier(v)} ${cls}">${v}</span>`;
+const money = v => !v ? '–' : v >= 1e6 ? (v/1e6).toLocaleString('en-GB',{maximumFractionDigits: v>=1e7?0:1}) + ' M' : Math.round(v/1e3) + ' K';
+const dat = v => v ? `${String(v%100).padStart(2,'0')}.${String(Math.floor(v/100)%100).padStart(2,'0')}.${Math.floor(v/10000)}` : '–';
+const ST = {
+  bez_kluba:['No club','Bez kluba',''], posudba:['On loan','Na posudbi','navy'], bez_facea:['No real face','Bez facea',''], nije_na_tm:['Not on Transfermarkt','Nije na TM-u','warn'],
+  sumnjivo:['Check match','Provjeri par','warn'], rucno:['Manual list','Ručni popis','navy'], za_brisanje:['To be removed','Za brisanje','bad'],
+  zakljucan:['Locked','Zaključan','navy'], promijenjen:['Changed','Promijenjen','good'], obrisan:['Removed','Obrisan','bad']};
+const stName = k => (ST[k]||[k,k])[LANG==='hr'?1:0];
+
+/* ---------------- views ---------------- */
+const VIEWS = ['browse','job','history','settings'];
+function view(v){
+  VIEWS.forEach(x => { $('#v-'+x).hidden = x!==v; document.querySelector(`[data-view="${x}"]`).setAttribute('aria-current', x===v ? 'page' : 'false'); });
+  try{ localStorage.setItem('su-view', v); }catch(e){}
+  if(v==='history') loadHistory();
+  if(v==='job') estimate();
+  if(v==='settings'){ loadData(); loadVersion(false); }
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => view(b.dataset.view)));
+
+/* ---------------- project ---------------- */
+let PR = null, OPC = null, DEFAULTS_APPLIED = false;
+async function loadProject(){
+  try{ PR = await api('/api/v2/projekt'); }catch(e){ setTimeout(loadProject, 2000); return; }
+  LANG = (PR.postavke && PR.postavke.jezik) || 'en'; applyLang();
+  document.querySelectorAll('input[name=lang]').forEach(r => r.checked = r.value===LANG);
+  $('#dbname').textContent = PR.opis;
+  const k = PR.katalog;
+  $('#dbn').textContent = k ? N(k.igraca) + ' ' + t('players') : '';
+  $('#dbsub').textContent = k ? (LANG==='hr' ? 'popis složen ' : 'list built ') + k.vrijeme.replace('T',' ').slice(0,16) : (LANG==='hr' ? 'Slažem popis igrača…' : 'Building the player list…');
+  $('#outname').textContent = PR.izlaz;
+  const nj = PR.izlaz_info ? PR.izlaz_info.poslovi.length : 0;
+  $('#outsub').textContent = PR.izlaz_postoji ? (LANG==='hr' ? `postoji · ${nj} poslova` : `exists · ${nj} job step(s)`) : (LANG==='hr' ? 'još ne postoji' : 'not created yet');
+  $('#openout').disabled = !PR.izlaz_postoji;
+  $('#outpath').value = PR.izlaz;
+  $('#od-iz').hidden = !PR.izlaz_postoji; if(!PR.izlaz_postoji) document.querySelector('input[name=od][value=original]').checked = true;
+  const g = PR.postavke.igra_cilj;
+  $('#gamepath').value = g || ''; $('#updurl').value = PR.postavke.update_url || '';
+  $('#igradir').value = PR.postavke.igra_dir || ''; $('#siderini').value = PR.postavke.sider_ini || '';
+  $('#ugrow').hidden = !g || PR.tip==='csv';
+  $('#ugamehint').textContent = g ? g : '';
+  $('#gameline').innerHTML = g ? (LANG==='hr' ? 'Ako je to nova mapa, dodaj ovaj redak na vrh cpk.root redaka u sider.ini:' : 'If this is a new folder, add this line above the other cpk.root lines in sider.ini:') + `<code class="line">cpk.root = "${esc(g)}"</code>` : '';
+  $('#katinfo').textContent = k ? `${N(k.igraca)} ${t('players')} · ${k.vrijeme.replace('T',' ').slice(0,16)}${k.izlaz ? ' · ' + (LANG==='hr'?'s izlazom':'with output') : ''}` : '';
+  if(!DEFAULTS_APPLIED && PR.postavke.posao_zadano){ DEFAULTS_APPLIED = true; const z = PR.postavke.posao_zadano;   // zadnji / unaprijed postavljen izbor posla
+    Object.keys(opState).forEach(k2 => opState[k2] = (z.opcije||[]).includes(k2)); if(z.skala!=null) SKALA = z.skala; renderOps();
+    const od = document.querySelector(`input[name=od][value="${z.od||'original'}"]`); if(od && !od.closest('label').hidden) od.checked = true;
+    if(!$('#ugrow').hidden) $('#ugame').checked = !!z.u_igru; estimate(); }
+  if(!k && PR.greska){ $('#dbsub').textContent = ''; $('#dbn').textContent = '';
+    $('#tbody').innerHTML = `<tr><td colspan="8" class="empty"><b>${LANG==='hr'?'Baza se ne može učitati.':'The database could not be read.'}</b><br>${esc(PR.greska)}</td></tr>`; setTimeout(loadProject, 6000); return; }
+  if(!k){ setTimeout(loadProject, 4000); return; }
+  if(!OPC){ OPC = await api('/api/v2/opcije'); fillOptions(); }
+  load();
+}
+$('#openout').addEventListener('click', () => api('/api/v2/otvori', {}).catch(e => alert(e.message)));
+
+/* ---------------- browse ---------------- */
+const F = {liga:[], klub:[], drz:[], poz:new Set(), st:new Set(), sort:'vr', dir:'desc', page:1};
+const POS = ['GK','CB','LB','RB','DMF','CMF','LMF','RMF','AMF','LWF','RWF','SS','CF'];
+function fillOptions(){
+  $('#fliga').innerHTML = '<option value="">—</option>' + OPC.lige.map(l => `<option value="${esc(l.k)}">${esc(l.n)} (${N(l.c)})</option>`).join('');
+  const kl = OPC.klubovi.map(c => `<option value="${esc(c.n)} · ${esc(c.l)}" data-id="${c.id}"></option>`).join('');
+  $('#klubdl').innerHTML = kl; $('#klubdl2').innerHTML = kl;
+  $('#drzdl').innerHTML = OPC.drzave.map(d => `<option value="${esc(d.n)}"></option>`).join('');
+  $('#frepr').innerHTML = '<option value="">—</option>' + OPC.repr.map(r => `<option>${esc(r.n)}</option>`).join('');
+  $('#screpr').innerHTML = `<option value="">${LANG==='hr'?'+ Reprezentacija':'+ National team'}</option>` + OPC.repr.map(r => `<option>${esc(r.n)}</option>`).join('');
+  $('#fpoz').innerHTML = POS.map(p => `<button type="button" data-p="${p}" aria-pressed="false">${p}</button>`).join('');
+  $('#fst').innerHTML = Object.keys(ST).map(k => `<label><span><input type="checkbox" data-st="${k}"> ${esc(stName(k))}</span></label>`).join('');
+  const y = new Date().getFullYear();
+  $('#fug').innerHTML = '<option value="">—</option>' + [0,1,2,3,4,5].map(i => `<option>${y+i}</option>`).join('');
+  renderScopeLeagues();
+}
+function query(){
+  const q = new URLSearchParams();
+  const v = id => $(id).value.trim();
+  if(v('#fq')) q.set('q', v('#fq'));
+  if(F.liga.length) q.set('liga', F.liga.join('|'));
+  if(F.klub.length) q.set('klub', F.klub.map(c=>c.id).join('|'));
+  if(F.drz.length) q.set('drz', F.drz.join('|'));
+  if(v('#frepr')) q.set('repr', v('#frepr'));
+  if(F.poz.size) q.set('poz', [...F.poz].join(','));
+  if(v('#fa0')) q.set('dob_od', v('#fa0')); if(v('#fa1')) q.set('dob_do', v('#fa1'));
+  if(v('#fo0')) q.set('ovr_od', v('#fo0')); if(v('#fo1')) q.set('ovr_do', v('#fo1'));
+  if(F.st.size) q.set('st', [...F.st].join(','));
+  if(v('#fug')) q.set('ug', v('#fug'));
+  if(v('#fdelta')) q.set('delta', v('#fdelta'));
+  q.set('sort', F.sort); q.set('dir', F.dir);
+  return q;
+}
+let LAST = null, loadT = null;
+function load(){ clearTimeout(loadT); loadT = setTimeout(doLoad, 150); }
+async function doLoad(){
+  const q = query(); q.set('page', F.page); q.set('n', 50);
+  let j; try{ j = await api('/api/v2/igraci?' + q); }catch(e){ $('#tbody').innerHTML = `<tr><td colspan="8" class="empty">${esc(e.message)}</td></tr>`; return; }
+  LAST = j;
+  $('#tcount').textContent = N(j.ukupno);
+  $('#c-browse').textContent = j.meta ? N(j.meta.igraca) : '';
+  const pages = Math.max(1, Math.ceil(j.ukupno / j.n));
+  $('#ppage').textContent = `${j.page} / ${N(pages)}`; $('#pprev').disabled = j.page<=1; $('#pnext').disabled = j.page>=pages;
+  const qs = query().toString();
+  $('#excsv').href = '/api/v2/izvoz?format=csv&' + qs; $('#exxlsx').href = '/api/v2/izvoz?format=xlsx&' + qs;
+  $('#tbody').innerHTML = j.igraci.length ? j.igraci.map(x => {
+    const d = (x.ovr!=null && x.ovr0!=null) ? x.ovr - x.ovr0 : 0;
+    return `<tr data-id="${x.id}" tabindex="0">
+      <td><span class="who"><b>${esc(x.ime)}</b><small>${esc(x.klub || (x.repr.length ? x.repr.join(', ') : (LANG==='hr'?'bez kluba':'no club')))}</small></span></td>
+      <td class="sub">${esc(x.liga)}</td><td>${esc(x.poz)}</td><td class="n">${x.dob??''}</td>
+      <td class="n">${d ? `<span class="sub">${x.ovr0}</span><span class="arrow">→</span>` : ''}${badge(x.ovr)}</td>
+      <td class="n">${money(x.vr)}</td><td class="n">${x.ug ? Math.floor(x.ug/10000) : '–'}</td>
+      <td>${x.st.filter(s => s!=='bez_facea' || F.st.has('bez_facea')).map(s => `<span class="tag ${(ST[s]||[])[2]||''}">${esc(stName(s))}</span>`).join('')}</td></tr>`; }).join('')
+    : `<tr><td colspan="8" class="empty">${LANG==='hr' ? 'Nijedan igrač ne odgovara filterima.' : 'No players match these filters.'}</td></tr>`;
+}
+['#fq','#fa0','#fa1','#fo0','#fo1','#fdelta'].forEach(id => $(id).addEventListener('input', () => { F.page = 1; load(); }));
+['#frepr','#fug'].forEach(id => $(id).addEventListener('change', () => { F.page = 1; load(); }));
+$('#fliga').addEventListener('change', e => { const v = e.target.value; if(v && !F.liga.includes(v)) F.liga.push(v); e.target.value=''; chips(); F.page=1; load(); });
+$('#fklubq').addEventListener('change', e => { const o = [...$('#klubdl').options].find(o => o.value===e.target.value); if(o && !F.klub.some(c=>c.id==o.dataset.id)) F.klub.push({id:+o.dataset.id, n:o.value}); e.target.value=''; chips(); F.page=1; load(); });
+$('#fdrzq').addEventListener('change', e => { const v = e.target.value.trim(); if(v && OPC.drzave.some(d=>d.n===v) && !F.drz.includes(v)) F.drz.push(v); e.target.value=''; chips(); F.page=1; load(); });
+function chips(){
+  const ln = k => (OPC.lige.find(l=>l.k===k)||{n:k}).n;
+  $('#cliga').innerHTML = F.liga.map(k => `<span class="chip">${esc(ln(k))}<button type="button" data-rm="liga" data-v="${esc(k)}" aria-label="Remove">×</button></span>`).join('');
+  $('#cklub').innerHTML = F.klub.map(c => `<span class="chip">${esc(c.n.split(' · ')[0])}<button type="button" data-rm="klub" data-v="${c.id}" aria-label="Remove">×</button></span>`).join('');
+  $('#cdrz').innerHTML = F.drz.map(d => `<span class="chip">${esc(d)}<button type="button" data-rm="drz" data-v="${esc(d)}" aria-label="Remove">×</button></span>`).join('');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]'); if(!b) return;
+  const k = b.dataset.rm, v = b.dataset.v;
+  if(k==='klub') F.klub = F.klub.filter(c => String(c.id)!==v); else F[k] = F[k].filter(x => x!==v);
+  chips(); F.page=1; load();
+});
+$('#fpoz').addEventListener('click', e => { const p = e.target.dataset.p; if(!p) return; F.poz.has(p) ? F.poz.delete(p) : F.poz.add(p); e.target.setAttribute('aria-pressed', F.poz.has(p)); F.page=1; load(); });
+$('#fst').addEventListener('change', e => { const s = e.target.dataset.st; if(!s) return; e.target.checked ? F.st.add(s) : F.st.delete(s); F.page=1; load(); });
+$('#freset').addEventListener('click', () => {
+  ['#fq','#fa0','#fa1','#fo0','#fo1','#fdelta','#frepr','#fug'].forEach(id => $(id).value='');
+  F.liga=[]; F.klub=[]; F.drz=[]; F.poz.clear(); F.st.clear(); F.page=1;
+  document.querySelectorAll('#fpoz button').forEach(b => b.setAttribute('aria-pressed','false'));
+  document.querySelectorAll('#fst input').forEach(i => i.checked=false); chips(); load();
+});
+document.querySelectorAll('th[data-s] button').forEach(b => b.addEventListener('click', () => {
+  const s = b.parentElement.dataset.s;
+  if(F.sort===s) F.dir = F.dir==='desc' ? 'asc' : 'desc'; else { F.sort = s; F.dir = ['ime','klub','poz'].includes(s) ? 'asc' : 'desc'; }
+  document.querySelectorAll('th[data-s]').forEach(th => th.removeAttribute('aria-sort'));
+  b.parentElement.setAttribute('aria-sort', F.dir==='desc' ? 'descending' : 'ascending'); F.page=1; load();
+}));
+$('#pprev').addEventListener('click', () => { F.page--; load(); });
+$('#pnext').addEventListener('click', () => { F.page++; load(); });
+$('#tbody').addEventListener('click', e => { const tr = e.target.closest('[data-id]'); if(tr) openPlayer(+tr.dataset.id); });
+$('#tbody').addEventListener('keydown', e => { if(e.key==='Enter'){ const tr = e.target.closest('[data-id]'); if(tr) openPlayer(+tr.dataset.id); } });
+$('#usescope').addEventListener('click', () => {
+  const q = Object.fromEntries(query()); SCOPE_FILTER = q;
+  $('#scope-filter').checked = true; syncScope();
+  $('#scfiltdesc').textContent = (LANG==='hr' ? 'Igrači iz trenutnog filtera na stranici Igrači: ' : 'Players from the current filter on the Players page: ') + $('#tcount').textContent;
+  view('job');
+});
+
+/* ---------------- player detail ---------------- */
+async function openPlayer(id){
+  $('#dbody').innerHTML = '<p class="empty">…</p>'; $('#drawer').showModal();
+  let d; try{ d = await api('/api/v2/igrac?id=' + id); }catch(e){ $('#dbody').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  const x = d.igrac, A = d.prije || {}, B = d.sada;
+  const rows = Object.keys(A).map(k => { const a = A[k], b = B ? B[k] : null; const cls = b==null||b===a ? '' : b>a ? 'up' : 'dn';
+    return `<span>${esc(k)}</span><span class="v">${a}</span><span class="v ${cls}">${b??'–'}</span>`; }).join('');
+  const locked = x.st.includes('zakljucan');
+  $('#dbody').innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div>
+      <div class="name" id="dname">${esc(x.ime)}</div>
+      <div class="sub">${esc(x.klub || '–')} · ${esc(x.liga)} · ${esc(x.poz)} · ${x.dob} · ${esc(x.drz)}${x.repr.length ? ' · ' + esc(x.repr.join(', ')) : ''}</div>
+      <div class="sub small">ID ${x.id}</div></div>
+      <button class="ghost" id="dclose" aria-label="Close">✕</button></div>
+    <div class="row" style="margin:16px 0 6px;gap:16px">${badge(x.ovr0,'xl')}<span class="arrow" style="font:600 28px var(--cond)">→</span>${badge(x.ovr,'xl')}
+      <span class="sub small">${LANG==='hr'?'ulazna baza → sada':'input database → now'}</span></div>
+    <div>${x.st.map(s => `<span class="tag ${(ST[s]||[])[2]||''}">${esc(stName(s))}</span>`).join('')}</div>
+    <h3 style="margin-top:16px">Transfermarkt</h3>
+    ${d.tm ? `<div class="sub">${esc(d.tm.name||'')} · ${esc(d.tm.club||'')} · ${money(d.tm.value)}${d.tm.age?' · '+d.tm.age:''}${d.tm.contract?' · '+(LANG==='hr'?'ugovor ':'contract ')+esc(d.tm.contract):''}</div>
+      <div class="sub small">${LANG==='hr'?'Uparen preko: ':'Matched via: '}${esc(d.kako||'–')}${d.tm_link?` · <a class="linkbtn" href="${esc(d.tm_link)}" target="_blank" rel="noopener">${LANG==='hr'?'otvori profil':'open profile'}</a>`:''}</div>`
+      : `<div class="sub">${LANG==='hr'?'Nije uparen s Transfermarktom.':'Not matched with Transfermarkt.'}</div>`}
+    ${d.za_provjeru ? `<p class="msg err" style="font-size:13.5px">${LANG==='hr'?'Za provjeru: ocjena bi se promijenila više od 8 bez potvrde klubom (možda imenjak).':'Check this match: the rating would change by more than 8 without a club to confirm it (could be a namesake).'}</p>` : ''}
+    ${x.pos_do ? `<p class="sub">${LANG==='hr'?'Na posudbi iz ':'On loan from '}<b>${esc(x.vlasnik||'?')}</b> ${LANG==='hr'?'do':'until'} ${dat(x.pos_do)}</p>` : ''}
+    ${x.ug ? `<p class="sub" style="margin-top:0">${LANG==='hr'?'Ugovor do ':'Contract until '}${dat(x.ug)}</p>` : ''}
+    <h3 style="margin-top:14px">${LANG==='hr'?'Atributi':'Attributes'}</h3>
+    <div class="attrs"><span class="h"></span><span class="h v">${LANG==='hr'?'ulaz':'input'}</span><span class="h v">${LANG==='hr'?'sada':'now'}</span>${rows}</div>
+    <div class="row" style="margin-top:16px">
+      <button class="ghost" id="dlock">${locked ? (LANG==='hr'?'Otključaj':'Unlock') : (LANG==='hr'?'Zaključaj igrača':'Lock player')}</button>
+      ${x.st.includes('promijenjen') ? `<button class="ghost" id="dundo">${LANG==='hr'?'Poništi za ovog igrača':'Undo for this player'}</button>` : ''}
+    </div>
+    <p class="sub small">${LANG==='hr'?'Zaključan igrač se u budućim poslovima ne mijenja.':'A locked player is never changed by future jobs.'}</p>
+    <div class="msg" id="dmsg"></div>`;
+  $('#dclose').addEventListener('click', () => $('#drawer').close());
+  $('#dlock').addEventListener('click', async () => { try{ await api('/api/v2/zakljucaj', {id:x.id, da:!locked}); openPlayer(x.id); load(); }catch(e){ msg('#dmsg', e.message, true); } });
+  if($('#dundo')) $('#dundo').addEventListener('click', async () => {
+    if(!confirm(LANG==='hr'?'Vratiti igrača u izlaznoj bazi na ulazne podatke i zaključati ga?':'Restore this player in the output database to the input data and lock him?')) return;
+    try{ await api('/api/v2/ponisti', {id:x.id}); openPlayer(x.id); load(); }catch(e){ msg('#dmsg', e.message, true); } });
+}
+$('#drawer').addEventListener('click', e => { if(e.target === $('#drawer')) $('#drawer').close(); });
+
+/* ---------------- new job ---------------- */
+let SCOPE_FILTER = null, SCOPE_KLUB = [], SCOPE_REPR = [];
+const OPS = [
+ {g:'Ratings', gh:'Ocjene', items:[
+  {k:'ratings', on:true, n:'Ratings from Transfermarkt', nh:'Ocjene s Transfermarkta', d:'Overall from market value, age, position, club and league, learned on EA SPORTS FC ratings. Attributes are scaled so the in-game overall matches exactly.', dh:'Overall iz tržišne vrijednosti, godina, pozicije, kluba i lige, naučen na EA SPORTS FC ocjenama. Atributi se skaliraju da overall u igri bude točno taj.'},
+  {k:'ea_profile', on:true, n:'Realistic attribute shape from EA FC', nh:'Realni atributi iz EA FC', d:'Players found in EA FC get its strengths and weaknesses (pace, jumping, heading, defending…): 70 % EA, 30 % your database.', dh:'Igrači iz EA FC dobiju njegove jače i slabije strane (brzina, skok, glava, obrana…): 70 % EA, 30 % tvoja baza.'},
+  {k:'ea_extra', on:true, n:'Foot, weak foot, positions and skills from EA FC', nh:'Noga, slabija noga, pozicije i vještine iz EA FC', d:'Fixes the stronger foot and clear weak-foot mistakes, adds secondary positions and skills from EA PlayStyles. Existing skills stay.', dh:'Ispravlja jaču nogu i očite greške slabije noge, dodaje sporedne pozicije i vještine iz EA PlayStyles. Postojeće vještine ostaju.'},
+  {k:'reputation', on:true, n:'Reputation follows the new rating', nh:'Reputacija prati novu ocjenu', d:'Moves reputation as much as the new overall moves the expected reputation in your own database.', dh:'Pomiče reputaciju koliko nova ocjena pomiče očekivanu reputaciju u tvojoj bazi.'}]},
+ {g:'Player data', gh:'Podaci igrača', items:[
+  {k:'data', on:true, n:'Age, nationality and height', nh:'Godine, državljanstvo i visina', d:'From Transfermarkt. Height only when it differs by up to 8 cm; a national-team player keeps that country.', dh:'S Transfermarkta. Visina samo kad je razlika do 8 cm; reprezentativac zadržava tu državu.'},
+  {k:'injuries', on:false, n:'Injury resistance from injury history', nh:'Otpornost na ozljede iz povijesti ozljeda', d:'Average days missed over the last three seasons. Downloads each player’s injury page (about 2 players per second, resumes where it stopped).', dh:'Prosjek propuštenih dana u zadnje tri sezone. Skida stranicu ozljeda za svakog igrača (oko 2 igrača u sekundi, nastavlja gdje je stao).'},
+  {k:'contracts', on:false, n:'Contracts and loans', nh:'Ugovori i posudbe', d:'Contract end, loan club and loan end, used by Master League. Only when both clubs are in the database.', dh:'Kraj ugovora, klub vlasnik i kraj posudbe, za Master League. Samo kad su oba kluba u bazi.'}]},
+ {g:'Squads', gh:'Sastavi', items:[
+  {k:'national', on:false, n:'National teams from the latest call-up', nh:'Reprezentacije prema zadnjem pozivu', d:'Exactly the last squad on Transfermarkt, up to 26 players, shirt numbers included. Only national teams in your choice of players (all of them for the whole database).', dh:'Točno zadnji poziv s Transfermarkta, najviše 26 igrača, s brojevima. Samo reprezentacije iz izbora igrača (sve za cijelu bazu).'},
+  {k:'search', on:false, n:'Find unrated players one by one', nh:'Pojedinačno traženje neocijenjenih igrača', d:'Free agents and players outside the leagues are searched by name, age and nationality. About 3 seconds per player, resumes where it stopped.', dh:'Slobodni igrači i igrači izvan liga traže se po imenu, godinama i državi. Oko 3 sekunde po igraču, nastavlja gdje je stao.'},
+  {k:'cleanup', on:false, n:'Remove retired players and duplicates', nh:'Ukloni umirovljene i duplikate', d:'Only players without a club or national team: retired on Transfermarkt, or a second record of the same player. Legends are kept.', dh:'Samo igrači bez kluba i reprezentacije: umirovljeni na Transfermarktu ili drugi zapis istog igrača. Legende ostaju.'}]}];
+function renderOps(){
+  $('#ops').innerHTML = OPS.map(g => `<div class="opgrp">${esc(LANG==='hr'?g.gh:g.g)}</div>` + g.items.map(o => `
+    <label class="op"><input type="checkbox" data-op="${o.k}" ${opState[o.k]?'checked':''}><b>${esc(LANG==='hr'?o.nh:o.n)}</b><span class="time" id="tm-${o.k}"></span>
+      <span class="d">${esc(LANG==='hr'?o.dh:o.d)}</span>
+      ${o.k==='ratings' ? `<div class="d"><div class="scale"><label for="skala"><b>${LANG==='hr'?'Razlika za slabije igrače':'Gap for weaker players'}</b> <span id="skv"></span></label>
+        <input type="range" id="skala" min="0" max="1" step="0.05" value="${SKALA}"><div class="row" style="justify-content:space-between"><span>${LANG==='hr'?'kao EA FC':'like EA FC'}</span><span>${LANG==='hr'?'kao tvoja baza':'like your database'}</span></div></div></div>` : ''}
+    </label>`).join('')).join('');
+  $('#skv').textContent = Number(SKALA).toFixed(2);
+  $('#skala').addEventListener('input', e => { SKALA = +e.target.value; $('#skv').textContent = SKALA.toFixed(2); });
+  $('#skala').addEventListener('click', e => e.stopPropagation());
+}
+let SKALA = 0.5;
+const opState = {}; OPS.forEach(g => g.items.forEach(o => opState[o.k] = o.on));
+$('#ops').addEventListener('change', e => { const k = e.target.dataset.op; if(k){ opState[k] = e.target.checked; estimate(); } });
+function scopeTip(){ return document.querySelector('input[name=scope]:checked').value; }
+function syncScope(){
+  const s = scopeTip();
+  $('#sc-lige').hidden = s!=='lige'; $('#sc-klubovi').hidden = s!=='klubovi'; $('#sc-filter').hidden = s!=='filter';
+  if(s==='filter' && !SCOPE_FILTER) $('#scfiltdesc').textContent = LANG==='hr' ? 'Na stranici Igrači postavi filtere i klikni „Koristi kao opseg novog posla“.' : 'Set filters on the Players page and click “Use as scope for new job”.';
+  estimate();
+}
+document.querySelectorAll('input[name=scope]').forEach(r => r.addEventListener('change', syncScope));
+let SCL = new Set();
+function renderScopeLeagues(){
+  const q = $('#scligeq').value.trim().toLowerCase();
+  const L = (OPC ? OPC.lige : []).filter(l => !q || l.n.toLowerCase().includes(q) || l.k.toLowerCase().includes(q));
+  $('#scligel').innerHTML = L.map(l => `<li><label><input type="checkbox" data-scl="${esc(l.k)}" ${SCL.has(l.k)?'checked':''}><span>${esc(l.n)}</span><span class="c">${N(l.c)}</span></label></li>`).join('');
+}
+$('#scligeq').addEventListener('input', renderScopeLeagues);
+$('#scligel').addEventListener('change', e => { const k = e.target.dataset.scl; if(!k) return; e.target.checked ? SCL.add(k) : SCL.delete(k); estimate(); });
+$('#scklubq').addEventListener('change', e => { const o = [...$('#klubdl2').options].find(o => o.value===e.target.value); if(o && !SCOPE_KLUB.some(c=>c.id==o.dataset.id)) SCOPE_KLUB.push({id:+o.dataset.id, n:o.value}); e.target.value=''; scopeChips(); });
+$('#screpr').addEventListener('change', e => { const v = e.target.value; if(v && !SCOPE_REPR.includes(v)) SCOPE_REPR.push(v); e.target.value=''; scopeChips(); });
+function scopeChips(){
+  $('#scklubc').innerHTML = SCOPE_KLUB.map(c => `<span class="chip">${esc(c.n.split(' · ')[0])}<button type="button" data-sck="${c.id}" aria-label="Remove">×</button></span>`).join('')
+    + SCOPE_REPR.map(r => `<span class="chip">${esc(r)}<button type="button" data-scr="${esc(r)}" aria-label="Remove">×</button></span>`).join('');
+  estimate();
+}
+$('#scklubc').addEventListener('click', e => { const k = e.target.dataset.sck, r = e.target.dataset.scr;
+  if(k) SCOPE_KLUB = SCOPE_KLUB.filter(c => String(c.id)!==k); if(r) SCOPE_REPR = SCOPE_REPR.filter(x => x!==r); scopeChips(); });
+function scopeBody(){
+  const s = scopeTip();
+  if(s==='lige') return {tip:'lige', lige:[...SCL]};
+  if(s==='klubovi') return {tip:'klubovi', klubovi:SCOPE_KLUB.map(c=>c.id), repr:SCOPE_REPR};
+  if(s==='filter') return {tip:'filter', filter:SCOPE_FILTER||{}};
+  return {tip:'sve'};
+}
+const opts = () => Object.keys(opState).filter(k => opState[k]);
+let estT = null;
+function estimate(){ clearTimeout(estT); estT = setTimeout(async () => {
+  try{
+    const e = await api('/api/v2/procjena', {opseg: scopeBody(), opcije: opts()});
+    const m = e.minute, fm = x => x < 1 ? '< 1 min' : x < 90 ? Math.round(x) + ' min' : (x/60).toFixed(1).replace('.', LANG==='hr' ? ',' : '.') + ' h';
+    $('#est').textContent = '~' + fm(m);
+    const SN = {'Prepare output folder':['Prepare output folder','Priprema izlazne mape'],'Find unrated players on Transfermarkt':['Find unrated players','Traženje neocijenjenih igrača'],'Match players with Transfermarkt':['Match with Transfermarkt','Uparivanje s Transfermarktom'],
+      'Download contracts and loans':['Contracts and loans','Ugovori i posudbe'],'Download injury history':['Injury history','Povijest ozljeda'],'Find retired players and duplicates':['Retired and duplicates','Umirovljeni i duplikati'],
+      'Write new database':['Calculate and write the database','Izračun i zapis baze'],'National teams':['National teams','Reprezentacije'],'Update player list':['Update player list','Osvježi popis igrača']};
+    $('#stepest').innerHTML = e.koraci.filter(k => k.min >= 0.1).map(k => `<li class="${k.min >= 20 ? 'big' : ''}"><span>${esc((SN[k.n]||[k.n,k.n])[LANG==='hr'?1:0])}</span><span>${fm(k.min)}</span></li>`).join('');
+    const tr = e.treba || {};
+    $('#esttip').textContent = e.hladno && m > 30 ? (LANG==='hr' ? 'Prvi put se sve skida s Transfermarkta; kasnije se koristi spremljeno, pa je puno brže. Za brz prvi pokušaj odznači sporu stavku (ozljede).' : 'The first run downloads everything from Transfermarkt; later runs reuse what was saved and are much faster. For a quick first try untick the slow item (injuries).')
+      : (m > 60 ? (LANG==='hr' ? 'Najviše vremena odlazi na skidanje s Transfermarkta. Možeš ga zaustaviti i nastaviti kasnije.' : 'Most of the time goes to downloading from Transfermarkt. You can stop and continue later.') : '');
+    $('#estsub').textContent = `${N(e.igraca)} ${t('players')}${e.lige ? ' · ' + e.lige + (LANG==='hr' ? ' liga' : ' league(s)') : ''}`;
+    $('#scopeinfo').textContent = '';
+    ['search','injuries'].forEach(k => { const el = $('#tm-'+k); if(el) { el.textContent = opState[k] ? (LANG==='hr'?'sporo':'slow') : ''; el.classList.toggle('slow', !!opState[k]); } });
+    $('#runjob').disabled = !opts().length || (scopeTip()==='lige' && !SCL.size) || (scopeTip()==='klubovi' && !SCOPE_KLUB.length && !SCOPE_REPR.length) || (scopeTip()==='filter' && !SCOPE_FILTER);
+  }catch(err){ $('#est').textContent = '–'; }
+}, 200); }
+$('#outpick').addEventListener('click', async () => { try{ const j = await api('/api/odaberi', {vrsta:'folder'}); if(j.put) $('#outpath').value = j.put; }catch(e){ msg('#jobmsg', e.message, true); } });
+$('#runjob').addEventListener('click', async () => {
+  const body = {opseg: scopeBody(), opcije: opts(), od: document.querySelector('input[name=od]:checked').value, izlaz: $('#outpath').value.trim(),
+                u_igru: $('#ugame').checked && !$('#ugrow').hidden, skala: SKALA};
+  try{ await api('/api/v2/posao', body); msg('#jobmsg', LANG==='hr' ? 'Pokrenuto. Napredak je u traci gore.' : 'Started. Progress is shown at the top.'); poll(); }
+  catch(e){ msg('#jobmsg', e.message, true); }
+});
+
+/* ---------------- history ---------------- */
+async function loadHistory(){
+  let H; try{ H = await api('/api/v2/povijest'); }catch(e){ return; }
+  $('#c-history').textContent = H.length ? N(H.length) : '';
+  const opName = k => { for(const g of OPS) for(const o of g.items) if(o.k===k) return LANG==='hr'?o.nh:o.n; return k; };
+  const stt = s => s==='done' ? `<span class="tag good">${LANG==='hr'?'gotovo':'done'}</span>` : s==='failed' ? `<span class="tag bad">${LANG==='hr'?'prekinuto':'stopped or failed'}</span>` : `<span class="tag warn">${LANG==='hr'?'u tijeku':'running'}</span>`;
+  $('#hist').innerHTML = H.length ? H.map((h,i) => `<li><div><div class="when">${esc(h.vrijeme.replace('T',' ').slice(0,16))} ${stt(h.status)}</div>
+      <div>${esc(h.opseg_opis)}</div><div class="sub small">${h.opcije.map(opName).map(esc).join(' · ')}</div>
+      <div class="sub small">${LANG==='hr'?'Spremljeno u ':'Saved to '}${esc(h.izlaz)}${h.od==='izlaz' ? (LANG==='hr'?' (od zadnjeg izlaza)':' (from last output)') : ''}${h.u_igru ? (LANG==='hr'?' · kopirano u igru':' · copied into game') : ''}</div></div>
+      <div class="acts"><button class="ghost" data-again="${i}">${LANG==='hr'?'Ponovi':'Run again'}</button>
+      <button class="ghost" data-changed="1">${LANG==='hr'?'Promijenjeni igrači':'Changed players'}</button></div></li>`).join('')
+    : `<li class="empty" style="display:block">${LANG==='hr'?'Još nema poslova. Napravi prvi na stranici Novi posao.':'No jobs yet. Start one on the New job page.'}</li>`;
+  $('#hist').onclick = e => {
+    const a = e.target.dataset.again, c = e.target.dataset.changed;
+    if(a!==undefined){ const h = H[+a];
+      Object.keys(opState).forEach(k => opState[k] = h.opcije.includes(k)); if(h.skala!=null) SKALA = h.skala; renderOps();
+      const sc = h.opseg || {tip:'sve'}; document.querySelector(`input[name=scope][value="${sc.tip}"]`).checked = true;
+      if(sc.tip==='lige') SCL = new Set(sc.lige||[]);
+      if(sc.tip==='klubovi'){ SCOPE_KLUB = (sc.klubovi||[]).map(id => { const c = OPC.klubovi.find(x=>x.id===id); return {id, n: c ? c.n : String(id)}; }); SCOPE_REPR = sc.repr||[]; scopeChips(); }
+      if(sc.tip==='filter'){ SCOPE_FILTER = sc.filter; }
+      renderScopeLeagues(); syncScope(); $('#outpath').value = h.izlaz; view('job'); }
+    if(c){ $('#freset').click(); F.st.add('promijenjen'); const cb = document.querySelector('#fst input[data-st="promijenjen"]'); if(cb) cb.checked = true; load(); view('browse'); }
+  };
+}
+
+/* ---------------- settings ---------------- */
+document.querySelectorAll('input[name=lang]').forEach(r => r.addEventListener('change', async () => {
+  LANG = r.value; await api('/api/v2/postavke', {jezik: LANG}).catch(()=>{}); applyLang(); renderOps(); if(OPC) fillOptions(); loadProject();
+}));
+$('#gamepick').addEventListener('click', async () => { try{ const j = await api('/api/odaberi', {vrsta:'folder'}); if(j.put) $('#gamepath').value = j.put; }catch(e){ msg('#setmsg', e.message, true); } });
+$('#savegame').addEventListener('click', async () => { try{ await api('/api/v2/postavke', {igra_cilj: $('#gamepath').value.trim()}); msg('#setmsg', LANG==='hr'?'Spremljeno.':'Saved.'); loadProject(); }catch(e){ msg('#setmsg', e.message, true); } });
+$('#igradirb').addEventListener('click', async () => { try{ const j = await api('/api/odaberi', {vrsta:'folder'}); if(j.put) $('#igradir').value = j.put; }catch(e){} });
+$('#siderinib').addEventListener('click', async () => { try{ const j = await api('/api/odaberi', {vrsta:'ini'}); if(j.put) $('#siderini').value = j.put; }catch(e){} });
+$('#saveigra').addEventListener('click', async () => { try{ await api('/api/v2/postavke', {igra_dir: $('#igradir').value.trim(), sider_ini: $('#siderini').value.trim()}); msg('#igramsg', LANG==='hr'?'Spremljeno.':'Saved.'); }catch(e){ msg('#igramsg', e.message, true); } });
+async function loadData(){
+  let d; try{ d = await api('/api/v2/podaci'); }catch(e){ return; }
+  const m = d.model;
+  $('#datainfo').innerHTML = (d.ea_datum ? (LANG==='hr' ? `EA ocjene: ${d.ea_datum} (staro ${d.ea_dana} d)` : `EA ratings: ${d.ea_datum} (${d.ea_dana} days old)`) : (LANG==='hr' ? 'EA ocjene još nisu skinute.' : 'EA ratings are not downloaded yet.'))
+    + (m ? `<br>${LANG==='hr' ? 'Formula' : 'Formula'}: ${esc(m.datum)} · ${N(m.n)} ${t('players')} · ${LANG==='hr'?'prosječna greška':'average error'} ${m.greska} · ${LANG==='hr'?'unutar ±3':'within ±3'}: ${m.unutar3} %` : '');
+  $('#updatasub').textContent = (LANG==='hr' ? 'oko ' : 'about ') + d.procjena_min + ' min' + (d.tm_lige_stare ? (LANG==='hr' ? ` (${d.tm_lige_stare} liga za osvježiti)` : ` (${d.tm_lige_stare} leagues to refresh)`) : '');
+  $('#c-settings').textContent = d.star ? '●' : ''; $('#c-settings').style.color = 'var(--r80)';
+  $('#updata').dataset.old = d.star ? '1' : '';
+}
+$('#updata').addEventListener('click', async () => {
+  const msgTxt = LANG==='hr' ? 'Osvježiti podatke o ocjenama? Traje dulje (vidi procjenu), a možeš ga zaustaviti i nastaviti kasnije.' : 'Update the ratings data? This takes a while (see the estimate) and you can stop it and continue later.';
+  if(!confirm(msgTxt)) return;
+  try{ await api('/api/v2/osvjezi_podatke', {}); msg('#datamsg', LANG==='hr'?'Pokrenuto. Napredak je u traci gore.':'Started. Progress is shown at the top.'); poll(); }
+  catch(e){ msg('#datamsg', e.message, true); }
+});
+async function loadVersion(check){
+  let v; try{ v = await api('/api/v2/verzija' + (check ? '?provjeri=1' : '')); }catch(e){ return; }
+  $('#verline').textContent = (LANG==='hr' ? 'Verzija ' : 'Version ') + v.verzija; $('#vtag').textContent = 'v' + v.verzija;
+  if(!check) return;
+  if(v.url_nije_postavljen) msg('#vermsg', LANG==='hr' ? 'Adresa za provjeru nije postavljena (napredne postavke).' : 'No update address is set (advanced settings).', true);
+  else if(v.greska) msg('#vermsg', v.greska, true);
+  else if(v.nova) $('#vermsg').innerHTML = (LANG==='hr' ? 'Nova verzija ' : 'New version ') + esc(v.zadnja) + (v.url ? ` · <a class="linkbtn" href="${esc(v.url)}" target="_blank" rel="noopener">${LANG==='hr'?'preuzmi':'download'}</a>` : '') + (v.biljeske ? ` · ${esc(v.biljeske)}` : '');
+  else msg('#vermsg', LANG==='hr' ? 'Imaš zadnju verziju.' : 'You have the latest version.');
+}
+$('#chkver').addEventListener('click', () => { msg('#vermsg', '…'); loadVersion(true); });
+$('#saveupd').addEventListener('click', async () => { try{ await api('/api/v2/postavke', {update_url: $('#updurl').value.trim()}); msg('#vermsg', LANG==='hr'?'Spremljeno.':'Saved.'); }catch(e){ msg('#vermsg', e.message, true); } });
+$('#rekat').addEventListener('click', async () => { try{ await api('/api/v2/katalog', {}); poll(); }catch(e){ alert(e.message); } });
+
+/* ---------------- database dialog ---------------- */
+async function openDb(){
+  const c = await api('/api/baza');
+  document.querySelectorAll('input[name=btip]').forEach(r => r.checked = r.value === c.tip);
+  $('#bput').value = c.put || ''; $('#bcsv').value = c.csv || ''; msg('#dbmsg',''); syncDb(); $('#dbdlg').showModal();
+}
+function syncDb(){ const t_ = (document.querySelector('input[name=btip]:checked')||{}).value; $('#bputrow').hidden = !(t_==='mapa'||t_==='cpk'); }
+document.querySelectorAll('input[name=btip]').forEach(r => r.addEventListener('change', syncDb));
+$('#chgdb').addEventListener('click', openDb);
+async function pick(vrsta, target){ try{ const j = await api('/api/odaberi', {vrsta}); if(j.put) $(target).value = j.put; }catch(e){ msg('#dbmsg', e.message, true); } }
+$('#bputb').addEventListener('click', () => pick(document.querySelector('input[name=btip]:checked').value === 'cpk' ? 'cpk' : 'mapa', '#bput'));
+$('#bcsvb').addEventListener('click', () => pick('csv', '#bcsv'));
+$('#dbok').addEventListener('click', async e => {
+  e.preventDefault();
+  const tp = (document.querySelector('input[name=btip]:checked')||{}).value || 'igra';
+  msg('#dbmsg', LANG==='hr' ? 'Provjeravam…' : 'Checking…');
+  try{ await api('/api/baza', {tip: tp, put: $('#bput').value, csv: $('#bcsv').value}); $('#dbdlg').close(); OPC = null; PR = null;
+       $('#tbody').innerHTML = `<tr><td colspan="8" class="empty">${LANG==='hr'?'Slažem popis igrača…':'Building the player list…'}</td></tr>`; setTimeout(loadProject, 1500); poll(); }
+  catch(err){ msg('#dbmsg', err.message, true); }
+});
+
+/* ---------------- job status ---------------- */
+let polling = false, wasRunning = false;
+$('#logbtn').addEventListener('click', () => { const l = $('#log'); l.hidden = !l.hidden; $('#logbtn').setAttribute('aria-expanded', !l.hidden); $('#logbtn').textContent = t(l.hidden ? 'Show log' : 'Hide log'); poll(true); });
+$('#stopbtn').addEventListener('click', () => api('/api/stop', {}));
+async function poll(once){
+  if(polling && !once) return; polling = true;
+  try{
+    const j = await api('/api/status');
+    $('#jobbar').hidden = !j.naziv;
+    $('#jobname').textContent = j.naziv;
+    const dot = $('#dot'), r = j.rezultat || {}, ko = r.korak, pr = r.napredak;
+    dot.className = 'dot ' + (j.radi ? 'run' : j.izlaz===0 ? 'ok' : j.izlaz!=null ? 'err' : '');
+    let det = j.radi ? (LANG==='hr'?'radi…':'working…') : j.izlaz===0 ? (LANG==='hr'?'gotovo':'finished') : j.izlaz!=null ? (LANG==='hr'?'prekinuto – otvori zapis rada':'stopped – see the log') : '';
+    if(ko && j.radi) det = `${LANG==='hr'?'korak':'step'} ${ko[0]} / ${ko[1]}: ${ko[2]}`;
+    if(pr && j.radi) det += ` · ${N(pr[0])} / ${N(pr[1])}`;
+    $('#jobdet').textContent = det;
+    const ks = j.koraci || [];
+    $('#jobsteps').innerHTML = ks.length > 1 ? ks.map((n,i) => `<span class="${ko && i < ko[0]-1 || (!j.radi && j.izlaz===0) ? 'done' : ko && i===ko[0]-1 && j.radi ? 'now' : ''}">${esc(n)}</span>`).join('') : '';
+    $('#prog').hidden = !(pr && j.radi); if(pr) $('#prog i').style.width = (100*pr[0]/pr[1]) + '%';
+    $('#stopbtn').hidden = !j.radi;
+    const l = $('#log'); if(!l.hidden){ const atB = l.scrollTop + l.clientHeight >= l.scrollHeight - 20; l.textContent = j.log.join('\n'); if(atB) l.scrollTop = l.scrollHeight; }
+    $('#runjob').disabled = j.radi || $('#runjob').disabled;
+    if(wasRunning && !j.radi){ PR = null; OPC = null; loadProject(); loadHistory(); estimate(); }
+    wasRunning = j.radi;
+    polling = false;
+    if(j.radi && !once) setTimeout(() => poll(), 1000);
+  }catch(e){ polling = false; if(!once) setTimeout(() => poll(), 3000); }
+}
+
+/* ---------------- start ---------------- */
+renderOps(); syncScope(); loadProject(); poll(); loadData(); loadVersion(false);
+try{ const v = localStorage.getItem('su-view'); if(VIEWS.includes(v)) view(v); }catch(e){}
+if(VIEWS.includes(location.hash.slice(1))) view(location.hash.slice(1));
+if(location.hash.startsWith('#igrac/')) setTimeout(() => openPlayer(+location.hash.split('/')[1]), 1500);
+
+/* otkucaji: program se ugasi kad se prozor zatvori */
+(function(){ const ping = () => fetch('/api/v2/ping').catch(()=>{}); ping(); setInterval(ping, 4000);
+  window.addEventListener('pagehide', () => { try{ fetch('/api/v2/zatvaram', {keepalive:true}); }catch(e){} }); })();
+</script>
+</body>
+</html>
