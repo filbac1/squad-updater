@@ -16,3 +16,5 @@ __pycache__/
 postavke.json
 projekt.json
 rucne.json
+.superpowers/
+razvoj/db/
