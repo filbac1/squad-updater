@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import collect_submodules
 
 MODULI = ['ui', 'app_api', 'ocjene', 'izvor', 'fl27db', 'provjera_faca', 'spremanje', 'katalog', 'reprezentacije', 'ugovori',
           'ozljede', 'ciscenje', 'bez_kluba', 'tm_igrac', 'tm_api', 'tm_overall', 'tm_podaci', 'model_ea27', 'ea_atributi',
-          'ea_dodatno', 'overall', 'pes_overall', 'izvoz_csv', 'katalog_liga', 'ea27', 'koza', 'lang', 'osvjezi_podatke', 'version', 'repr_rucno', 'postave', 'imena', 'mreza', 'napredak']
+          'ea_dodatno', 'overall', 'pes_overall', 'izvoz_csv', 'katalog_liga', 'ea27', 'koza', 'lang', 'osvjezi_podatke', 'version', 'repr_rucno', 'postave', 'imena', 'mreza', 'napredak', 'objasni']
 DATA = [('app.html', '.'), ('ui.html', '.'), ('editor_tablice.json', '.'), ('editor_zaglavlje.txt', '.'),
         ('model_ea27.pkl', '.'), ('ea_atributi.json', '.'), ('kalibracija.json', '.'),
         ('cache/ea_fc27.json', 'cache'), ('cache/katalog_liga.json', 'cache'), ('cache/tm_povijest.json', 'cache'),

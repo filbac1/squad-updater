@@ -307,6 +307,18 @@ def igrac(pid):
         'name': ru.get('tm_ime'), 'club': ru.get('klub'), 'value': ru.get('vrijednost'), 'age': ru.get('godine')}),
         'kako': kako, 'za_provjeru': zp, 'tm_link': 'https://www.transfermarkt.com/-/profil/spieler/%s' % x['tm'] if x['tm'] else None}
 
+def objasnjenje(pid):
+    """'Zasto ova ocjena?' za igraca iz baze (preko TM id-a); skala = klizac iz zadnjeg posla."""
+    import izvor as IZ, objasni as OB
+    x = next((y for y in katalog()['igraci'] if y['id'] == int(pid)), None)
+    if x is None or not x.get('tm'): return {'ima': False, 'razlog': 'not_matched'}
+    H = _jl(os.path.join(IZ.mapa(cfg()), 'poslovi.json'), []) or []
+    sk = next((h.get('skala') for h in H if h.get('skala') is not None), None)
+    r = OB.objasni(x['tm'], sk)
+    if not r: return {'ima': False, 'razlog': 'no_value'}
+    rucno = str(x['id']) in (_jl(os.path.join(IZ.mapa(cfg()), 'rucne.json'), {}) or {})
+    return dict(r, ima=True, baza=x.get('ovr'), zakljucan='zakljucan' in x['st'], rucno=rucno)
+
 def zakljucaj(pid, da):
     import izvor as IZ
     f = os.path.join(IZ.mapa(cfg()), 'zakljucani.json')
@@ -696,6 +708,7 @@ def get(path, q):
     if path == '/api/v2/igraci': return 200, stranica(flat)
     if path == '/api/v2/opcije': return 200, katalog()['opcije'] or {}
     if path == '/api/v2/igrac': return 200, igrac(g('id'))
+    if path == '/api/v2/objasni': return 200, objasnjenje(g('id'))
     if path == '/api/v2/povijest': return 200, povijest()
     if path == '/api/v2/pregled': return 200, pregled()
     if path == '/api/v2/reprezentacije': return 200, reprezentacije_sve()

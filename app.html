@@ -1222,6 +1222,30 @@ function radarSvg(A, B, gk){
   if(B) g += `<polygon points="${poly(B)}" fill="rgba(245,183,0,.28)" stroke="var(--sun)" stroke-width="2.5" stroke-linejoin="round"><animate attributeName="opacity" from="0" to="1" dur=".6s"/></polygon>`;
   return `<svg viewBox="0 0 260 250" role="img" aria-label="${L('Attribute radar','Radar atributa')}">${g}</svg>`;
 }
+async function loadWhy(id){
+  let w; try{ w = await api('/api/v2/objasni?id=' + id); }catch(e){ w = {ima:false}; }
+  const box = $("#ovrwhy"); if(!box || PM.id !== id) return;
+  if(!w.ima){ box.querySelector('p').textContent = w.razlog==='no_value' ? L('Transfermarkt has no market value for him, so the formula does not rate him.','Transfermarkt nema tržišnu vrijednost, pa ga formula ne ocjenjuje.') : L('Not available.','Nije dostupno.'); return; }
+  const u = w.ulazi, pct = v => (v>0?'+':'') + Math.round((Math.exp(v)-1)*100) + ' %';
+  const nm = {value: L('Market value','Tržišna vrijednost') + (u.value ? ' · ' + money(u.value) + ' €' : ''), age: L('Age','Dob') + ' · ' + u.age,
+    club: L('Club strength','Jačina kluba') + ' · ' + esc(u.club||''), league: L('League strength','Jačina lige') + ' · ' + esc(u.league_ime||u.league||''),
+    region: L('Market region','Regija tržišta'), history: L('Value trend','Trend vrijednosti') + ' · ' + pct(u.trend) + L(' in a year',' u godinu dana')};
+  const D = Object.entries(w.doprinosi).filter(([k,v]) => Math.abs(v) >= 0.05).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const mx = Math.max(1, ...D.map(([k,v]) => Math.abs(v))), f1 = v => (v>0?'+':'') + v.toFixed(1);
+  const bar = v => `<span class="bar" style="background:none"><i style="position:absolute;top:0;bottom:0;border-radius:4px;left:${(v>=0 ? 50 : 50 - Math.abs(v)/mx*50).toFixed(1)}%;width:${(Math.abs(v)/mx*50).toFixed(1)}%;background:var(${v>=0?'--pitch':'--card'})"></i><i style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)"></i></span>`;
+  const notes = [];
+  if(w.skala && Math.abs(w.igra - w.model) >= 0.5) notes.push(L(`Your “gap for weaker players” setting moves ${w.model.toFixed(1)} on the EA FC scale to ${w.igra.toFixed(1)}.`, `Tvoja postavka „razmak za slabije igrače“ pomiče ${w.model.toFixed(1)} s EA FC ljestvice na ${w.igra.toFixed(1)}.`));
+  if(w.ea != null) notes.push(L(`EA SPORTS FC 27 rates him ${w.ea}.`, `EA SPORTS FC 27 mu daje ${w.ea}.`));
+  if(w.baza != null && w.baza !== w.ocjena) notes.push(w.zakljucan ? L(`He is locked, so the database keeps ${w.baza}.`,`Zaključan je, pa baza zadržava ${w.baza}.`)
+    : w.rucno ? L(`He is on the manual list, so the overall comes from that entry (${w.baza}).`,`Na ručnom je popisu, pa ocjena dolazi iz tog unosa (${w.baza}).`)
+    : L(`The database shows ${w.baza}: the last job used other data or a limit on how much an overall may change.`,`Baza pokazuje ${w.baza}: zadnji posao je koristio druge podatke ili ograničenje promjene ocjene.`));
+  box.innerHTML = `<h4>${L('Why this overall?','Zašto ova ocjena?')}</h4>
+    <div class="sub small" style="margin-bottom:6px">${L('Reference player (1 M €, 26 years, average club and league, same position)','Referentni igrač (1 M €, 26 godina, prosječan klub i liga, ista pozicija)')}: <b>${w.ref.toFixed(1)}</b></div>
+    ${D.map(([k,v]) => `<div class="ar" style="grid-template-columns:minmax(0,1fr) 96px 44px"><span>${nm[k]}</span>${bar(v)}<span class="dl ${v>0?'u':'d'}">${f1(v)}</span></div>`).join('')}
+    <div class="ar" style="grid-template-columns:minmax(0,1fr) 96px 44px;border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span><b>${L('Formula','Formula')}</b></span><span class="sub small">${w.model.toFixed(1)}${Math.abs(w.igra-w.model)>=0.05 ? ' → ' + w.igra.toFixed(1) : ''}</span><span>${badge(w.ocjena)}</span></div>
+    ${notes.map(n => `<div class="sub small" style="margin-top:4px">${n}</div>`).join('')}`;
+}
+
 async function openPlayer(id, list){
   if(list) PM.list = list; PM.id = id; PM.cmp = null;
   if(!$('#drawer').open){ $('#dbody').innerHTML = '<div class="hero"><div class="pname">…</div></div><p class="empty" style="padding:24px">…</p>'; $('#drawer').showModal(); }
@@ -1283,6 +1307,7 @@ async function openPlayer(id, list){
           ${d.za_provjeru ? `<div class="note bad" style="font-size:13.5px">${L('Doubtful match: the overall would change by more than 8 and the club does not confirm it.','Sumnjiv par: ocjena bi se promijenila više od 8, a klub to ne potvrđuje.')} <button class="linkbtn" id="pmrv">${L('Review','Provjeri')}</button></div>` : ''}
           ${x.pos_do ? `<div class="sub small" style="margin-top:6px">${L('On loan from ','Na posudbi iz ')}<b>${esc(x.vlasnik||'?')}</b> ${L('until','do')} ${dat(x.pos_do)}</div>` : ''}
         </div>
+        ${x.tm ? `<div class="card2" id="ovrwhy"><h4>${L('Why this overall?','Zašto ova ocjena?')}</h4><p class="sub small">…</p></div>` : ''}
       </div>
       <div><h4>${L('Attributes','Atributi')} <span class="sub small" style="font-weight:400">${L('your database → new database','tvoja baza → nova baza')}</span></h4>${groups}</div>
     </div>
@@ -1294,6 +1319,7 @@ async function openPlayer(id, list){
       <span class="msg" id="dmsg" style="margin:0"></span>
     </div>`;
   $('#dclose').addEventListener('click', () => $('#drawer').close());
+  if(x.tm) loadWhy(x.id);
   cmpSearch($('#cmpq'), $('#cmpres'), id2 => openCompare(x.id, id2));
   $('#pmprev').addEventListener('click', () => stepPlayer(-1)); $('#pmnext').addEventListener('click', () => stepPlayer(1));
   if($('#pmrv')) $('#pmrv').addEventListener('click', () => { $('#drawer').close(); view('review'); });

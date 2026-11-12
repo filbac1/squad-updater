@@ -573,14 +573,23 @@ def serve(port=None):
     """Pokreni poslužitelj u pozadinskoj niti (za launcher). Vraca ThreadingHTTPServer."""
     os.makedirs(OUTDIR, exist_ok=True)
     threading.Thread(target=load_leagues, daemon=True).start()
+    threading.Thread(target=_zagrij, daemon=True).start()
     srv = ThreadingHTTPServer(('127.0.0.1', port or PORT), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
+
+def _zagrij():
+    """U pozadini ucitaj formulu i indeks liga, da prvi 'Zasto ova ocjena?' ne ceka ~4 s."""
+    try:
+        import objasni as OB, model_ea27 as ME
+        ME.load(); OB._indeks()
+    except Exception: pass
 
 def main():
     """Razvojno pokretanje: python ui.py (otvara običan preglednik). Zapakirana aplikacija koristi squad_updater.py."""
     os.makedirs(OUTDIR, exist_ok=True)
     threading.Thread(target=load_leagues, daemon=True).start()
+    threading.Thread(target=_zagrij, daemon=True).start()
     srv = ThreadingHTTPServer(('127.0.0.1', PORT), H)
     url = 'http://127.0.0.1:%d' % PORT
     print('Squad Updater runs at %s  (close this window to stop)' % url)
