@@ -14,7 +14,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-SKUPINE = [('value', [0]), ('age', [1]), ('club', [3]), ('league', [4]), ('region', [5]), ('history', [6, 7])]
+from model_ea27 import SKUPINE
 
 def _liga_datoteke():
     import model_ea27 as ME
@@ -52,36 +52,21 @@ def nadji(tm_id):
     pl = I['lige'][code]
     return code, next(q for q in pl if q.get('tm_id') == tm_id), pl
 
-def rastav(q, cm, lg, code):
-    """-> dict: ref, doprinosi {skupina: bodovi}, model (EA ljestvica). Doprinosi se zbrajaju tocno."""
+def rastav(q, cm, lg, code, f=None):
+    """-> dict: ref, doprinosi {skupina: bodovi, vec pomnozeni korisnickim tezinama}, model (EA ljestvica), tezine.
+    ref + sum(doprinosi) + pomaci = model (tocno)."""
     import model_ea27 as ME
-    M = ME.load(); L0 = math.log(M['info'].get('top_v0', ME.TOP_V0)); nagib = M['info'].get('top_nagib', 0.0)
+    f = f or ME.formula()
     q = dict(q)
     if '_trend' not in q and q.get('tm_id'):
         q['_trend'], q['_peak'] = ME.hist_feats(q['tm_id'], datetime.date.today(), q['value'])
     xx = ME.x(q, cm, lg, code)
-    R = referenca()
-    ref = [0.0, 26, xx[2], R['cm'], R['lg'], 0, 0.0, 0.0]
-    k = len(SKUPINE); rows = []
-    maske = list(itertools.product((0, 1), repeat=k))
-    for m in maske:
-        r = list(ref)
-        for on, (_, idx) in zip(m, SKUPINE):
-            if on:
-                for i in idx: r[i] = xx[i]
-        rows.append(r)
-    X = np.array(rows, float); extra = np.maximum(X[:, 0] - L0, 0) * nagib; X[:, 0] = np.minimum(X[:, 0], L0)
-    V = dict(zip(maske, M['model'].predict(X) + extra))
-    phi = {}
-    for j, (ime, _) in enumerate(SKUPINE):
-        s = 0.0
-        for m in maske:
-            if m[j]: continue
-            n = sum(m); w = math.factorial(n) * math.factorial(k - n - 1) / math.factorial(k)
-            m1 = list(m); m1[j] = 1
-            s += w * (V[tuple(m1)] - V[m])
-        phi[ime] = round(float(s), 2)
-    return {'ref': round(float(V[(0,) * k]), 2), 'doprinosi': phi, 'model': round(float(V[(1,) * k]), 2),
+    osn, phi, _ = ME.shapley(np.array([xx], float), referenca())
+    pomak = f['pomak'] + f[str(ME.LINIJA[int(xx[2])])]
+    D = {ime: round(float(phi[0, j] * f[ime]), 2) for j, (ime, _) in enumerate(SKUPINE)}
+    model = float(ME.primijeni(osn, phi, [xx[2]], f)[0])
+    return {'ref': round(float(osn[0]), 2), 'doprinosi': D, 'model': round(model, 2), 'pomak': round(pomak, 2),
+            'tezine': {ime: f[ime] for ime, _ in SKUPINE}, 'prilagodena': ME.formula_aktivna(f),
             'ulazi': {'value': q.get('value'), 'age': q.get('age'), 'pos': q.get('pos'), 'club': q.get('club'), 'league': code,
                       'trend': round(float(xx[6]), 3), 'peak': round(float(xx[7]), 3)}}
 

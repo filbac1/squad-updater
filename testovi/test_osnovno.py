@@ -77,6 +77,38 @@ class Izvjestaji(unittest.TestCase):
             self.assertNotIn('ocjene_SVE_2026-11-05_120000.xlsx', ost)
 
 
+class Formula(unittest.TestCase):
+    def setUp(self):
+        import numpy as np, model_ea27 as ME
+        if not os.path.exists(ME.FILE): self.skipTest('nema modela')
+        self.ME, self.np = ME, np
+        rng = np.random.default_rng(0)
+        self.X = np.column_stack([rng.uniform(-3, 5, 40), rng.integers(17, 37, 40), rng.integers(0, 8, 40),
+                                  rng.uniform(-2, 4, 40), rng.uniform(-1, 3, 40), rng.integers(0, 5, 40),
+                                  rng.uniform(-.5, .5, 40), rng.uniform(0, 1, 40)]).astype(float)
+        self.ref = {'cm': 0.5, 'lg': 1.0}
+
+    def test_zadano_je_model(self):
+        ME = self.ME
+        self.assertFalse(ME.formula_aktivna(ME.formula({})))
+        self.assertTrue((ME.ocjena_redaka(self.X, ME.formula({})) == ME._sirovo(self.X)).all())
+
+    def test_shapley_zbroj(self):
+        o, p, f = self.ME.shapley(self.X, self.ref)
+        self.assertLess(float(abs(o + p.sum(1) - f).max()), 1e-9)
+        self.assertLess(float(abs(f - self.ME._sirovo(self.X)).max()), 1e-9)
+
+    def test_pomaci_i_granice(self):
+        ME = self.ME
+        o, p, _ = ME.shapley(self.X, self.ref)
+        a = ME.primijeni(o, p, self.X[:, 2], ME.formula({}))
+        b = ME.primijeni(o, p, self.X[:, 2], ME.formula({'pomak': 2, 'GK': 1}))
+        gk = self.X[:, 2] == 0
+        self.assertTrue(self.np.allclose((b - a)[gk], 3) and self.np.allclose((b - a)[~gk], 2))
+        self.assertEqual(ME.formula({'value': 9, 'age': 'x'})['value'], 1.5)
+        self.assertEqual(ME.formula({'value': 9, 'age': 'x'})['age'], 1.0)
+
+
 class Paket(unittest.TestCase):
     def test_spec_sadrzi_module_i_podatke(self):
         s = open(os.path.join(HERE, 'SquadUpdater.spec'), encoding='utf-8').read()

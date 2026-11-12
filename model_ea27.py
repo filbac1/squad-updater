@@ -172,28 +172,109 @@ def predict(q, cm, lg, fetch=False):
     if not (q.get('value') and q.get('age')): return None
     if '_trend' not in q and q.get('tm_id'):
         q = dict(q); q['_trend'], q['_peak'] = hist_feats(q['tm_id'], datetime.date.today(), q['value'], fetch=fetch)
-    M = load(); xx = x(q, cm, lg); L0 = np.log(M['info'].get('top_v0', TOP_V0)); extra = 0.0
-    if xx[0] > L0:
-        extra = (xx[0] - L0) * M['info'].get('top_nagib', 0.0); xx[0] = L0
-    return float(M['model'].predict(np.array([xx], float))[0]) + extra
+    return float(ocjena_redaka(np.array([x(q, cm, lg)], float))[0])
 
 def predict_many(qs, cm, lg, fetch=False):
     """Kao predict(), ali za cijelu listu odjednom (jedan poziv modela umjesto jednog po igracu - ~50x brze)."""
-    M = load(); L0 = np.log(M['info'].get('top_v0', TOP_V0)); nagib = M['info'].get('top_nagib', 0.0)
-    rows, idx, extra = [], [], []
+    rows, idx = [], []
     today = datetime.date.today()
     for i, q in enumerate(qs):
         if not (q.get('value') and q.get('age')): continue
         if '_trend' not in q and q.get('tm_id'):
             q = dict(q); q['_trend'], q['_peak'] = hist_feats(q['tm_id'], today, q['value'], fetch=fetch)
-        xx = x(q, cm, lg); e = 0.0
-        if xx[0] > L0: e = (xx[0] - L0) * nagib; xx[0] = L0
-        rows.append(xx); idx.append(i); extra.append(e)
+        rows.append(x(q, cm, lg)); idx.append(i)
     out = [None] * len(qs)
     if rows:
-        pr = M['model'].predict(np.array(rows, float))
-        for i, v, e in zip(idx, pr, extra): out[i] = float(v) + e
+        for i, v in zip(idx, ocjena_redaka(np.array(rows, float))): out[i] = float(v)
     return out
+
+def _sirovo(X):
+    """Model + linearni nastavak vrha (X = sirovi ulazi x(), ne mijenja se)."""
+    M = load(); L0 = np.log(M['info'].get('top_v0', TOP_V0)); nagib = M['info'].get('top_nagib', 0.0)
+    X = np.array(X, float, copy=True); extra = np.maximum(X[:, 0] - L0, 0) * nagib; X[:, 0] = np.minimum(X[:, 0], L0)
+    return M['model'].predict(X) + extra
+
+# ------------------------------------------------------------------ korisnicka formula (klizaci u aplikaciji)
+# Ocjena = referentni igrac + sum(tezina_skupine * Shapleyjev doprinos skupine) + pomak + pomak linije.
+# Zadano (sve tezine 1, pomaci 0) = tocno formula iz modela; tada se racuna starim putem (identican rezultat).
+SKUPINE = [('value', [0]), ('age', [1]), ('club', [3]), ('league', [4]), ('region', [5]), ('history', [6, 7])]
+ZADANO = {'value': 1.0, 'age': 1.0, 'club': 1.0, 'league': 1.0, 'region': 1.0, 'history': 1.0,
+          'pomak': 0.0, 'GK': 0.0, 'DEF': 0.0, 'MID': 0.0, 'ATT': 0.0}
+GRANICE = {'value': (0.5, 1.5), 'age': (0.0, 2.0), 'club': (0.0, 2.0), 'league': (0.0, 2.0), 'region': (0.0, 2.0), 'history': (0.0, 2.0),
+           'pomak': (-5.0, 5.0), 'GK': (-3.0, 3.0), 'DEF': (-3.0, 3.0), 'MID': (-3.0, 3.0), 'ATT': (-3.0, 3.0)}
+LINIJA = np.array(['GK', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'ATT', 'ATT'])     # po grp(): 0 GK, 1-2 obrana, 3-5 vezni, 6-7 napad
+
+def formula(d=None):
+    """Postavke formule: d, inace SU_FORMULA (json) ili postavke.json 'formula'; nepoznato/izvan granica -> zadano."""
+    if d is None:
+        d = None
+        if os.environ.get('SU_FORMULA'):
+            try: d = json.loads(os.environ['SU_FORMULA'])
+            except ValueError: d = None
+        if d is None:
+            try: d = (json.load(open(os.path.join(HERE, 'postavke.json'), encoding='utf-8')) or {}).get('formula')
+            except (OSError, ValueError): d = None
+    f = dict(ZADANO)
+    for k, v in (d or {}).items():
+        if k in f:
+            try: f[k] = float(min(max(float(v), GRANICE[k][0]), GRANICE[k][1]))
+            except (TypeError, ValueError): pass
+    return f
+
+def formula_aktivna(f):
+    return any(abs(f[k] - ZADANO[k]) > 1e-9 for k in ZADANO)
+
+_MASKE = None
+def _maske():
+    """64 kombinacije skupina + Shapleyjeve tezine: phi = V @ C.T (C: 6 x 64)."""
+    global _MASKE
+    if _MASKE is None:
+        import itertools, math
+        k = len(SKUPINE); maske = list(itertools.product((0, 1), repeat=k)); pos = {m: i for i, m in enumerate(maske)}
+        C = np.zeros((k, len(maske)))
+        for j in range(k):
+            for m in maske:
+                if m[j]: continue
+                n = sum(m); w = math.factorial(n) * math.factorial(k - n - 1) / math.factorial(k)
+                m1 = list(m); m1[j] = 1
+                C[j, pos[tuple(m1)]] += w; C[j, pos[m]] -= w
+        _MASKE = (np.array(maske, bool), C)
+    return _MASKE
+
+def referenca():
+    """Referentni ulazi (medijan jacine kluba i lige u skinutim ligama); racuna objasni._indeks()."""
+    import objasni as OB
+    return OB.referenca()
+
+def shapley(X, ref=None, blok=4000):
+    """X (n, 8) sirovi ulazi -> (osnova (n,), doprinosi (n, 6), puna ocjena (n,)). Osnova = referentni igrac iste pozicije."""
+    X = np.asarray(X, float); R = ref or referenca()
+    maske, C = _maske(); k = len(SKUPINE)
+    r0 = np.array([0.0, 26, 0, R['cm'], R['lg'], 0, 0.0, 0.0])
+    osn, phi, puna = [], [], []
+    for a in range(0, len(X), blok):
+        B = X[a:a + blok]; n = len(B)
+        Z = np.repeat(r0[None, :], n * len(maske), 0).reshape(n, len(maske), 8)
+        Z[:, :, 2] = B[:, None, 2]
+        for j, (_, idx) in enumerate(SKUPINE):
+            on = maske[:, j]
+            for i in idx: Z[:, on, i] = B[:, None, i]
+        V = _sirovo(Z.reshape(-1, 8)).reshape(n, len(maske))
+        osn.append(V[:, 0]); phi.append(V @ C.T); puna.append(V[:, -1])
+    if not osn: return np.zeros(0), np.zeros((0, k)), np.zeros(0)
+    return np.concatenate(osn), np.concatenate(phi), np.concatenate(puna)
+
+def primijeni(osn, phi, grp_, f):
+    """Ocjena po korisnickoj formuli iz rastava (brzo - za pregled uzivo)."""
+    w = np.array([f[g] for g, _ in SKUPINE])
+    return osn + phi @ w + f['pomak'] + np.array([f[l] for l in LINIJA[np.asarray(grp_, int)]])
+
+def ocjena_redaka(X, f=None):
+    """Ocjena (EA ljestvica) za sirove ulaze X; korisnicka formula ako je ukljucena."""
+    f = f or formula()
+    if not formula_aktivna(f): return _sirovo(X)
+    osn, phi, _ = shapley(X)
+    return primijeni(osn, phi, np.asarray(X)[:, 2], f)
 
 _EA = None
 def ea_lookup(q):

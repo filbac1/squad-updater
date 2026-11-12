@@ -709,6 +709,7 @@ def get(path, q):
     if path == '/api/v2/opcije': return 200, katalog()['opcije'] or {}
     if path == '/api/v2/igrac': return 200, igrac(g('id'))
     if path == '/api/v2/objasni': return 200, objasnjenje(g('id'))
+    if path == '/api/v2/formula': return 200, formula_stanje()
     if path == '/api/v2/povijest': return 200, povijest()
     if path == '/api/v2/pregled': return 200, pregled()
     if path == '/api/v2/reprezentacije': return 200, reprezentacije_sve()
@@ -736,7 +737,72 @@ def get(path, q):
             {'Content-Disposition': 'attachment; filename="players.%s"' % ('xlsx' if fmt == 'xlsx' else 'csv')}
     return None
 
+# ------------------------------------------------------------------ korisnicka formula (klizaci)
+_FR = {'kljuc': None}
+FLOCK = threading.Lock()
+
+def formula_stanje():
+    import model_ea27 as ME
+    f = ME.formula(postavke().get('formula'))
+    return {'formula': f, 'zadano': ME.ZADANO, 'granice': ME.GRANICE, 'aktivna': ME.formula_aktivna(f)}
+
+def formula_spremi(b):
+    import model_ea27 as ME
+    d = postavke()
+    if b.get('reset'): d.pop('formula', None)
+    else:
+        f = ME.formula(b.get('formula') or {})
+        d['formula'] = {k: v for k, v in f.items() if abs(v - ME.ZADANO[k]) > 1e-9}        # pamti samo promjene
+        if not d['formula']: d.pop('formula')
+    _jw(POSTAVKE, d)
+    return formula_stanje()
+
+def _formula_rastav():
+    """Rastav (Shapley) za sve uparene igrace iz baze - racuna se jednom (~10 s), pa klizaci rade odmah."""
+    import model_ea27 as ME, objasni as OB, numpy as np
+    I = OB._indeks(); kat = katalog()['igraci']
+    kljuc = (I['kljuc'], KAT['mtime'])
+    with FLOCK:
+        if _FR['kljuc'] != kljuc:
+            potreban = {x['tm']: x for x in kat if x.get('tm')}
+            X, igr = [], []
+            for code, pl in I['lige'].items():
+                cm = lg = None
+                for q in pl:
+                    x = potreban.get(q.get('tm_id'))
+                    if x is None or not (q.get('value') and q.get('age')): continue
+                    if cm is None: cm, lg = ME.strengths(pl)
+                    q = dict(q); q['_trend'], q['_peak'] = ME.hist_feats(q['tm_id'], datetime.date.today(), q['value'])
+                    X.append(ME.x(q, cm, lg, code)); igr.append((x['id'], x['ime'], x.get('klub'), x.get('liga'), x.get('poz')))
+                    potreban.pop(q['tm_id'], None)
+            X = np.array(X, float) if X else np.zeros((0, 8))
+            osn, phi, _ = ME.shapley(X, OB.referenca()) if len(X) else (np.zeros(0), np.zeros((0, 6)), None)
+            _FR.update(kljuc=kljuc, osn=osn, phi=phi, grp=X[:, 2] if len(X) else np.zeros(0), igr=igr)
+    return _FR
+
+def formula_pregled(b):
+    """Usporedba korisnicke formule sa zadanom na igracima iz baze: najbolji, najveci pomaci, lige, raspodjela."""
+    import model_ea27 as ME, numpy as np
+    R = _formula_rastav()
+    if not R['igr']: return {'n': 0}
+    f = ME.formula(b.get('formula') or {}); sk = float(b['skala']) if b.get('skala') is not None else ME.SKALA
+    ocj = lambda v: np.clip(np.round([ME.to_game(float(t), sk) for t in v]), 40, 99).astype(int)
+    a = ocj(ME.primijeni(R['osn'], R['phi'], R['grp'], ME.ZADANO)); n_ = ocj(ME.primijeni(R['osn'], R['phi'], R['grp'], f))
+    d = n_ - a; I = R['igr']
+    red = lambda i: {'id': I[i][0], 'ime': I[i][1], 'klub': I[i][2], 'poz': I[i][4], 'prije': int(a[i]), 'sada': int(n_[i])}
+    lige = collections.defaultdict(list)
+    for i, x in enumerate(I): lige[x[3]].append(i)
+    L = sorted(lige.items(), key=lambda kv: -len(kv[1]))[:14]
+    return {'n': len(I), 'prosjek': round(float(d.mean()), 2), 'gore': int((d > 0).sum()), 'dolje': int((d < 0).sum()),
+            'raspodjela': {str(k): int((np.clip(d, -6, 6) == k).sum()) for k in range(-6, 7)},
+            'najbolji': [red(i) for i in np.argsort(-n_, kind='stable')[:12]],
+            'gore_top': [red(i) for i in np.argsort(-d, kind='stable')[:6] if d[i] > 0],
+            'dolje_top': [red(i) for i in np.argsort(d, kind='stable')[:6] if d[i] < 0],
+            'lige': [{'liga': k, 'n': len(v), 'prije': round(float(a[v].mean()), 1), 'sada': round(float(n_[v].mean()), 1)} for k, v in L]}
+
 def post(path, b, start_job, py, job_active):
+    if path == '/api/v2/formula': return 200, formula_spremi(b)
+    if path == '/api/v2/formula/pregled': return 200, formula_pregled(b)
     if path == '/api/v2/procjena': return 200, procjena(b.get('opseg') or {'tip': 'sve'}, b.get('opcije') or [])
     if path == '/api/v2/posao':
         if job_active(): return 409, {'greska': 'Another job is running. Wait for it or stop it.'}

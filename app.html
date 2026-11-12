@@ -280,6 +280,24 @@ dialog.modal form,dialog.modal .in{padding:22px}
 .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start}
 @media (max-width:500px){.settings{grid-template-columns:minmax(0,1fr)}}
 .settings .panel + .panel{margin-top:0}
+.fgrid{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.fgrid{grid-template-columns:minmax(0,1fr)}}
+.fgrid .panel + .panel{margin-top:0}
+.fsl{display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:2px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.fsl:last-child{border-bottom:0}
+.fsl label{font-weight:600;font-size:14.5px}
+.fsl output{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.fsl output.ch{color:var(--focus);font-weight:700}
+.fsl input{grid-column:1 / -1;width:100%;accent-color:var(--ink)}
+.fsl .h{grid-column:1 / -1;color:var(--ink2);font-size:12.5px;line-height:1.35}
+.fdist{display:flex;align-items:flex-end;gap:3px;height:90px;margin:8px 0 2px}
+.fdist i{flex:1;min-height:2px;border-radius:3px 3px 0 0;background:var(--line)}
+.fdist i.u{background:var(--pitch)} .fdist i.d{background:var(--card);opacity:.85}
+.fdl{display:flex;gap:3px;font-size:11px;color:var(--ink2)} .fdl span{flex:1;text-align:center}
+.ftab{width:100%;border-collapse:collapse;font-size:14px}
+.ftab td{padding:5px 4px;border-bottom:1px solid var(--line)}
+.ftab td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
 .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:14px;margin:8px 0}
 .kv span:nth-child(odd){color:var(--ink2)}
 .kv span:nth-child(even){overflow-wrap:anywhere}
@@ -502,6 +520,7 @@ dialog.pm[open]{animation:pmin .38s var(--ease)}
       <button data-view="nt" data-hr="Reprezentacije">National teams</button>
       <button data-view="lc" data-hr="Lige i klubovi">Leagues &amp; clubs</button>
       <button data-view="job" data-hr="Novo ažuriranje">New update</button>
+      <button data-view="formula" data-hr="Formula">Formula</button>
       <button data-view="history" data-hr="Povijest">History</button>
       <button data-view="settings"><span data-hr="Postavke">Settings</span><span class="dot" id="setdot" hidden></span></button>
     </nav>
@@ -742,6 +761,24 @@ dialog.pm[open]{animation:pmin .38s var(--ease)}
 </section>
 
 <!-- ================= SETTINGS ================= -->
+<section id="v-formula" hidden>
+  <div class="head"><div><h2 data-hr="Formula ocjena">Rating formula</h2>
+    <p class="sub" data-hr="Ocjena dolazi iz Transfermarkt vrijednosti, dobi, kluba i lige, naučena na EA SPORTS FC ocjenama. Ovdje odlučuješ koliko što vrijedi. Sve na zadanom = formula koja dolazi s programom.">The overall comes from Transfermarkt value, age, club and league, learned on EA SPORTS FC ratings. Here you decide how much each part counts. Everything at default = the formula that ships with the app.</p></div></div>
+  <div class="fgrid">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0" data-hr="Koliko što vrijedi">How much each part counts</h3><span class="tag" id="fstate"></span></div>
+      <div id="fsl1"></div>
+      <h3 style="margin-top:16px" data-hr="Pomak ocjena">Move overalls</h3>
+      <div id="fsl2"></div>
+      <h3 style="margin-top:16px" data-hr="Samo za pregled">Preview only</h3>
+      <div id="fsl3"></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="fsave" data-hr="Spremi formulu">Save formula</button><button class="ghost" id="freset" data-hr="Vrati zadano">Back to default</button><span class="msg" id="fmsg" style="margin:0"></span></div>
+      <p class="sub small" style="margin-top:8px" data-hr="Spremljena formula vrijedi za sva sljedeća ažuriranja ocjena. Zaključani igrači i ručni popis se ne mijenjaju.">The saved formula is used by every later ratings update. Locked players and the manual list are not changed.</p>
+    </div>
+    <div class="panel" id="fprev"><p class="sub" data-hr="Računam pregled…">Working out the preview…</p></div>
+  </div>
+</section>
+
 <section id="v-settings" hidden>
   <div class="head"><div><h2 data-hr="Postavke">Settings</h2></div></div>
   <div class="settings">
@@ -931,7 +968,7 @@ const STEPN = {'Prepare output folder':['Prepare output folder','Priprema nove b
 const stepName = n => (STEPN[n]||[n,n])[LANG==='hr'?1:0];
 
 /* ---------------- views ---------------- */
-const VIEWS = ['home','browse','nt','lc','review','job','history','settings'];
+const VIEWS = ['home','browse','nt','lc','review','job','formula','history','settings'];
 let CUR = 'home';
 function view(v, noAnim){
   if(!VIEWS.includes(v)) v = 'home';
@@ -945,6 +982,7 @@ function view(v, noAnim){
   if(v==='nt') loadNT();
   if(v==='lc') loadLC();
   if(v==='review') loadReview();
+  if(v==='formula') loadFormula();
 }
 $$('[data-view]').forEach(b => b.addEventListener('click', () => view(b.dataset.view)));
 new ResizeObserver(() => document.documentElement.style.setProperty('--bandh', $('#band').offsetHeight + 'px')).observe($('#band'));
@@ -1222,6 +1260,68 @@ function radarSvg(A, B, gk){
   if(B) g += `<polygon points="${poly(B)}" fill="rgba(245,183,0,.28)" stroke="var(--sun)" stroke-width="2.5" stroke-linejoin="round"><animate attributeName="opacity" from="0" to="1" dur=".6s"/></polygon>`;
   return `<svg viewBox="0 0 260 250" role="img" aria-label="${L('Attribute radar','Radar atributa')}">${g}</svg>`;
 }
+/* ---------------- formula (klizaci) ---------------- */
+let FM = null, FMS = null, FMT = null, FSK = null, FSEQ = 0;
+const FSL = [
+  ['value', ['Market value','Tržišna vrijednost'], ['The main input. Higher = bigger gaps between cheap and expensive players.','Glavni ulaz. Više = veće razlike između jeftinih i skupih igrača.']],
+  ['age', ['Age','Dob'], ['Young players are paid for potential, so the formula rates them lower than their value. Lower = young talents closer to their value.','Mladi su plaćeni zbog potencijala, pa ih formula ocjenjuje niže od vrijednosti. Niže = mladi talenti bliže svojoj vrijednosti.']],
+  ['club', ['Club strength','Jačina kluba'], ['Players at strong clubs get a bonus.','Igrači u jakim klubovima dobivaju bonus.']],
+  ['league', ['League strength','Jačina lige'], ['Stronger leagues raise or lower players with the same value.','Jače lige dižu ili spuštaju igrače iste vrijednosti.']],
+  ['region', ['Market region','Regija tržišta'], ['South American, Asian and African markets price players differently from Europe.','J. Amerika, Azija i Afrika drugačije cijene igrače od Europe.']],
+  ['history', ['Value trend','Trend vrijednosti'], ['Rising or falling value over the last year, and distance from the career peak.','Rast ili pad vrijednosti u zadnjih godinu dana i udaljenost od vrha karijere.']],
+];
+const FSL2 = [['pomak', ['All players','Svi igrači']], ['GK', ['Goalkeepers','Golmani']], ['DEF', ['Defenders','Obrana']], ['MID', ['Midfielders','Vezni red']], ['ATT', ['Forwards','Napad']]];
+async function loadFormula(){
+  try{ FMS = await api('/api/v2/formula'); }catch(e){ $('#fprev').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  FM = {...FMS.formula}; if(FSK == null) FSK = SKALA; renderFormula(); previewFormula(true);
+}
+function fmtW(k, v){ return FMS.zadano[k] === 0 ? (v > 0 ? '+' : '') + (+v).toFixed(1) : '×' + (+v).toFixed(2); }
+function renderFormula(){
+  const G = FMS.granice, Z = FMS.zadano;
+  const one = (k, nm, help, step) => `<div class="fsl"><label for="f-${k}">${esc(L(nm[0],nm[1]))}</label><output id="fo-${k}" class="${Math.abs(FM[k]-Z[k])>1e-9?'ch':''}">${fmtW(k, FM[k])}</output>
+    <input type="range" id="f-${k}" data-k="${k}" min="${G[k][0]}" max="${G[k][1]}" step="${step}" value="${FM[k]}">${help ? `<div class="h">${esc(L(help[0],help[1]))}</div>` : ''}</div>`;
+  $('#fsl1').innerHTML = FSL.map(([k, nm, h]) => one(k, nm, h, 0.05)).join('');
+  $('#fsl2').innerHTML = FSL2.map(([k, nm]) => one(k, nm, null, 0.5)).join('');
+  $('#fsl3').innerHTML = `<div class="fsl"><label for="f-skala">${L('Gap for weaker players','Razlika za slabije igrače')}</label><output id="fo-skala">${(+FSK).toFixed(2)}</output>
+    <input type="range" id="f-skala" min="0" max="1" step="0.05" value="${FSK}"><div class="h">${L('Chosen per update (New update → Ratings); here it only changes the preview.','Bira se kod svakog ažuriranja (Novo ažuriranje → Ocjene); ovdje mijenja samo pregled.')}</div></div>`;
+  $$('#v-formula input[data-k]').forEach(el => el.addEventListener('input', e => { const k = e.target.dataset.k; FM[k] = +e.target.value;
+    const o = $('#fo-' + k); o.textContent = fmtW(k, FM[k]); o.className = Math.abs(FM[k]-Z[k])>1e-9 ? 'ch' : ''; fState(); previewFormula(); }));
+  $('#f-skala').addEventListener('input', e => { FSK = +e.target.value; $('#fo-skala').textContent = FSK.toFixed(2); previewFormula(); });
+  fState();
+}
+function fState(){
+  const Z = FMS.zadano, cust = Object.keys(Z).some(k => Math.abs(FM[k]-Z[k])>1e-9);
+  const saved = Object.keys(Z).every(k => Math.abs(FM[k]-FMS.formula[k])<1e-9);
+  $('#fstate').textContent = (cust ? L('your formula','tvoja formula') : L('default','zadana')) + (saved ? '' : L(' · not saved',' · nije spremljeno'));
+}
+function previewFormula(now){
+  clearTimeout(FMT); FMT = setTimeout(async () => { const my = ++FSEQ; let r;
+    try{ r = await api('/api/v2/formula/pregled', {formula: FM, skala: FSK}); }catch(e){ $('#fprev').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+    if(my === FSEQ) renderPreview(r); }, now ? 0 : 140);
+}
+function renderPreview(r){
+  if(!r.n){ $('#fprev').innerHTML = `<p class="sub">${L('No players matched with Transfermarkt yet – run an update first.','Još nema igrača uparenih s Transfermarktom – prvo pokreni ažuriranje.')}</p>`; return; }
+  const D = r.raspodjela, mx = Math.max(1, ...Object.values(D)), ks = Object.keys(D).map(Number).sort((a,b)=>a-b);
+  const dd = v => v > 0 ? `<span class="dl u">+${v}</span>` : v < 0 ? `<span class="dl d">${v}</span>` : '<span class="sub">·</span>';
+  const tr = x => `<tr><td>${esc(x.ime)}<div class="sub small">${esc(x.klub||'')} · ${esc(x.poz||'')}</div></td><td class="n">${x.prije} → <b>${x.sada}</b></td><td class="n">${dd(x.sada-x.prije)}</td></tr>`;
+  const same = r.gore === 0 && r.dolje === 0;
+  $('#fprev').innerHTML = `
+    <h3 style="margin-top:0">${L('Compared with the default formula','U usporedbi sa zadanom formulom')}</h3>
+    <div class="tally" style="margin:6px 0 4px"><span><b>${N(r.n)}</b>${L('players','igrača')}</span><span class="u"><b>${N(r.gore)}</b>${L('higher','više')}</span><span class="d"><b>${N(r.dolje)}</b>${L('lower','niže')}</span><span><b>${r.prosjek>0?'+':''}${r.prosjek}</b>${L('average','prosjek')}</span></div>
+    ${same ? `<p class="sub small">${L('Move a slider to see what changes.','Pomakni klizač da vidiš što se mijenja.')}</p>` : ''}
+    <div class="fdist" aria-hidden="true">${ks.map(k => `<i class="${k>0?'u':k<0?'d':''}" style="height:${(D[k]/mx*100).toFixed(1)}%" title="${k}: ${D[k]}"></i>`).join('')}</div>
+    <div class="fdl" aria-hidden="true">${ks.map(k => `<span>${k===-6?'≤−6':k===6?'≥+6':k>0?'+'+k:k}</span>`).join('')}</div>
+    <div class="fcols" style="margin-top:16px">
+      <div><h4>${L('Best players','Najbolji igrači')}</h4><table class="ftab">${r.najbolji.map(tr).join('')}</table></div>
+      <div><h4>${L('Leagues (average overall)','Lige (prosječna ocjena)')}</h4><table class="ftab">${r.lige.map(l => `<tr><td>${esc(lname(l.liga))} <span class="sub small">${N(l.n)}</span></td><td class="n">${l.prije} → <b>${l.sada}</b></td><td class="n">${dd(Math.round((l.sada-l.prije)*10)/10)}</td></tr>`).join('')}</table></div>
+    </div>
+    ${(r.gore_top.length || r.dolje_top.length) ? `<div class="fcols" style="margin-top:16px">
+      <div><h4>${L('Up the most','Najviše gore')}</h4><table class="ftab">${r.gore_top.map(tr).join('')}</table></div>
+      <div><h4>${L('Down the most','Najviše dolje')}</h4><table class="ftab">${r.dolje_top.map(tr).join('')}</table></div></div>` : ''}`;
+}
+$('#fsave').addEventListener('click', async () => { try{ FMS = await api('/api/v2/formula', {formula: FM}); FM = {...FMS.formula}; renderFormula(); msg('#fmsg', L('Saved – used by the next ratings update.','Spremljeno – koristi se u sljedećem ažuriranju ocjena.'), 'ok'); }catch(e){ msg('#fmsg', e.message, 'err'); } });
+$('#freset').addEventListener('click', () => { FM = {...FMS.zadano}; renderFormula(); previewFormula(true); msg('#fmsg', L('Default values – press Save to use them.','Zadane vrijednosti – pritisni Spremi da ih koristiš.'), ''); });
+
 async function loadWhy(id){
   let w; try{ w = await api('/api/v2/objasni?id=' + id); }catch(e){ w = {ima:false}; }
   const box = $("#ovrwhy"); if(!box || PM.id !== id) return;
@@ -1234,6 +1334,7 @@ async function loadWhy(id){
   const mx = Math.max(1, ...D.map(([k,v]) => Math.abs(v))), f1 = v => (v>0?'+':'') + v.toFixed(1);
   const bar = v => `<span class="bar" style="background:none"><i style="position:absolute;top:0;bottom:0;border-radius:4px;left:${(v>=0 ? 50 : 50 - Math.abs(v)/mx*50).toFixed(1)}%;width:${(Math.abs(v)/mx*50).toFixed(1)}%;background:var(${v>=0?'--pitch':'--card'})"></i><i style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)"></i></span>`;
   const notes = [];
+  if(w.prilagodena) notes.push(L('Your own formula is on (Formula page): the parts above already use your weights.','Uključena je tvoja formula (stranica Formula): dijelovi gore već koriste tvoje težine.'));
   if(w.skala && Math.abs(w.igra - w.model) >= 0.5) notes.push(L(`Your “gap for weaker players” setting moves ${w.model.toFixed(1)} on the EA FC scale to ${w.igra.toFixed(1)}.`, `Tvoja postavka „razmak za slabije igrače“ pomiče ${w.model.toFixed(1)} s EA FC ljestvice na ${w.igra.toFixed(1)}.`));
   if(w.ea != null) notes.push(L(`EA SPORTS FC 27 rates him ${w.ea}.`, `EA SPORTS FC 27 mu daje ${w.ea}.`));
   if(w.baza != null && w.baza !== w.ocjena) notes.push(w.zakljucan ? L(`He is locked, so the database keeps ${w.baza}.`,`Zaključan je, pa baza zadržava ${w.baza}.`)
@@ -1242,6 +1343,7 @@ async function loadWhy(id){
   box.innerHTML = `<h4>${L('Why this overall?','Zašto ova ocjena?')}</h4>
     <div class="sub small" style="margin-bottom:6px">${L('Reference player (1 M €, 26 years, average club and league, same position)','Referentni igrač (1 M €, 26 godina, prosječan klub i liga, ista pozicija)')}: <b>${w.ref.toFixed(1)}</b></div>
     ${D.map(([k,v]) => `<div class="ar" style="grid-template-columns:minmax(0,1fr) 96px 44px"><span>${nm[k]}</span>${bar(v)}<span class="dl ${v>0?'u':'d'}">${f1(v)}</span></div>`).join('')}
+    ${Math.abs(w.pomak||0) >= 0.05 ? `<div class="ar" style="grid-template-columns:minmax(0,1fr) 96px 44px"><span>${L('Your shift','Tvoj pomak')}</span><span></span><span class="dl ${w.pomak>0?'u':'d'}">${f1(w.pomak)}</span></div>` : ''}
     <div class="ar" style="grid-template-columns:minmax(0,1fr) 96px 44px;border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span><b>${L('Formula','Formula')}</b></span><span class="sub small">${w.model.toFixed(1)}${Math.abs(w.igra-w.model)>=0.05 ? ' → ' + w.igra.toFixed(1) : ''}</span><span>${badge(w.ocjena)}</span></div>
     ${notes.map(n => `<div class="sub small" style="margin-top:4px">${n}</div>`).join('')}`;
 }
@@ -1624,7 +1726,8 @@ function renderOps(){
     <label class="op"><input type="checkbox" data-op="${o.k}" ${opState[o.k]?'checked':''}><b>${esc(LANG==='hr'?o.nh:o.n)}</b><span class="time" id="tm-${o.k}"></span>
       <span class="d">${esc(LANG==='hr'?o.dh:o.d)}</span>
       ${o.k==='ratings' ? `<div class="d"><div class="scale"><label for="skala"><b>${L('Gap for weaker players','Razlika za slabije igrače')}</b> <span id="skv"></span></label>
-        <input type="range" id="skala" min="0" max="1" step="0.05" value="${SKALA}"><div class="row" style="justify-content:space-between"><span>${L('like EA FC','kao EA FC')}</span><span>${L('like your database','kao tvoja baza')}</span></div></div></div>` : ''}
+        <input type="range" id="skala" min="0" max="1" step="0.05" value="${SKALA}"><div class="row" style="justify-content:space-between"><span>${L('like EA FC','kao EA FC')}</span><span>${L('like your database','kao tvoja baza')}</span></div>
+        <div style="margin-top:6px"><a class="linkbtn small" href="#" onclick="event.preventDefault();event.stopPropagation();view('formula')">${L('Adjust the rating formula…','Prilagodi formulu ocjena…')}</a></div></div></div>` : ''}
     </label>`).join('')).join('');
   $('#skv').textContent = Number(SKALA).toFixed(2);
   $('#skala').addEventListener('input', e => { SKALA = +e.target.value; $('#skv').textContent = SKALA.toFixed(2); });
